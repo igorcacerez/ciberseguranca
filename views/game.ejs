@@ -86,7 +86,7 @@
           <div class="xp-bar-container">
             <div class="xp-label">
               <span>EXP</span>
-              <span><%= missoesConcluidas * 125 %> / <%= missoes.length * 125 %></span>
+              <span><%= pontuacaoTotal %> / <%= missoes.reduce((sum, m) => sum + m.pontos_maximos, 0) %></span>
             </div>
             <div class="xp-bar">
               <div class="xp-fill" style="width: <%= Math.round((missoesConcluidas / missoes.length) * 100) %>%"></div>
@@ -124,7 +124,7 @@
                           🔍 Analista Jr.
                         <% } else if (missoesConcluidas < 6) { %>
                           🛡️ Pentester
-                        <% } else if (missoesConcluidas < 8) { %>
+                        <% } else if (missoesConcluidas < Math.ceil(missoes.length * 0.7)) { %>
                           ⚡ Especialista
                         <% } else { %>
                           🏆 Hacker Ético Certificado

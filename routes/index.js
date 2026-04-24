@@ -77,11 +77,11 @@ router.get('/leaderboard', async (req, res) => {
 
     conn.release();
 
-    res.render('leaderboard', { ranking, session: req.session });
+    res.render('leaderboard', { ranking, session: req.session, totalMissoes: missionsData.length });
 
   } catch (err) {
     console.error('[leaderboard]', err);
-    res.render('leaderboard', { ranking: [], session: req.session });
+    res.render('leaderboard', { ranking: [], session: req.session, totalMissoes: missionsData.length });
   }
 });
 

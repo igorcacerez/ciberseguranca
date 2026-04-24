@@ -3,11 +3,102 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const missionsData = require('../data/missions-data');
 
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5-mini';
+
 // Middleware de autenticação
 function requireAuth(req, res, next) {
   if (!req.session.alunoId) return res.redirect('/');
   next();
 }
+
+function fallbackEmployeeReply(message) {
+  const text = String(message || '').toLowerCase();
+
+  if (text.includes('senha') || text.includes('password') || text.includes('codigo') || text.includes('código') || text.includes('mfa') || text.includes('token')) {
+    return 'Nao posso enviar senha, token ou codigo de MFA por chat. Vou abrir um chamado no Service Desk e confirmar esse pedido pelo canal oficial.';
+  }
+
+  if (text.includes('urgente') || text.includes('diretor') || text.includes('bloqueio') || text.includes('acesso')) {
+    return 'Entendi a urgencia, mas preciso validar sua identidade e o numero do chamado antes de qualquer acao de acesso.';
+  }
+
+  if (text.includes('link') || text.includes('portal') || text.includes('login')) {
+    return 'Antes de clicar, vou conferir se o dominio pertence a empresa e se o link esta no comunicado oficial.';
+  }
+
+  return 'Pode explicar o contexto e informar o numero do chamado? Para qualquer acesso, sigo apenas o procedimento aprovado pela empresa.';
+}
+
+// POST /mission/chat — simula funcionarios com OpenAI para missoes de engenharia social
+router.post('/chat', requireAuth, async (req, res) => {
+  const missaoId = parseInt(req.body.mission_id);
+  const message = String(req.body.message || '').trim().slice(0, 800);
+  const missao = missionsData.find(m => m.id === missaoId);
+
+  if (!missao || missao.tipo !== 'chat' || !message) {
+    return res.status(400).json({ error: 'Chat indisponivel para esta missao.' });
+  }
+
+  req.session.chatHistory = req.session.chatHistory || {};
+  const history = req.session.chatHistory[missaoId] || [];
+  const nextHistory = history.concat({ role: 'user', content: message }).slice(-8);
+
+  if (!process.env.OPENAI_API_KEY) {
+    const reply = fallbackEmployeeReply(message);
+    req.session.chatHistory[missaoId] = nextHistory.concat({ role: 'assistant', content: reply });
+    return res.json({ reply, fallback: true });
+  }
+
+  try {
+    const transcript = nextHistory
+      .map(item => `${item.role === 'user' ? 'Aluno' : 'Funcionario'}: ${item.content}`)
+      .join('\n');
+
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: OPENAI_MODEL,
+        max_output_tokens: 220,
+        input: [
+          {
+            role: 'system',
+            content: `Voce simula um funcionario em um treinamento autorizado de conscientizacao contra engenharia social.
+Objetivo pedagogico: responder como um funcionario realista, educado e cauteloso durante um teste interno.
+Regras de seguranca:
+- Nunca revele senhas reais, tokens, codigos MFA, chaves, dados pessoais sensiveis ou meios de burlar controles.
+- Se o aluno pedir credenciais, responda com uma recusa plausivel e mencione verificacao por canal oficial.
+- Voce pode simular sinais de risco, duvida, pressao e boas praticas defensivas.
+- Responda em portugues do Brasil, com ate 3 frases, como mensagem de chat corporativo.
+Contexto da missao: ${missao.chat_context || missao.titulo}`
+          },
+          {
+            role: 'user',
+            content: `Historico do chat:\n${transcript}\n\nResponda como o funcionario simulado.`
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const reply = data.output_text || data.output?.flatMap(o => o.content || []).map(c => c.text).filter(Boolean).join('\n') || fallbackEmployeeReply(message);
+
+    req.session.chatHistory[missaoId] = nextHistory.concat({ role: 'assistant', content: reply }).slice(-10);
+    res.json({ reply });
+  } catch (err) {
+    console.error('[mission chat]', err);
+    const reply = fallbackEmployeeReply(message);
+    req.session.chatHistory[missaoId] = nextHistory.concat({ role: 'assistant', content: reply }).slice(-10);
+    res.json({ reply, fallback: true });
+  }
+});
 
 // GET /mission/:id — carrega a missão
 router.get('/:id', requireAuth, async (req, res) => {

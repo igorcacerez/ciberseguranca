@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethical Hacker Game</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="game-page">
+
+  <!-- Desktop -->
+  <div class="desktop" id="desktop">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="os-logo">⚡ EthicalOS</span>
+        <span class="topbar-sep">|</span>
+        <span class="status-badge status-secure">🔒 SISTEMA SEGURO</span>
+      </div>
+      <div class="topbar-center">
+        <span class="topbar-clock" id="clock"></span>
+      </div>
+      <div class="topbar-right">
+        <span class="player-badge">
+          <span class="player-icon">👤</span>
+          <span id="playerName"><%= session.nomeCompleto %></span>
+        </span>
+        <span class="score-badge">
+          <span>⭐</span>
+          <span id="scoreDisplay"><%= pontuacaoTotal %> pts</span>
+        </span>
+        <a href="/leaderboard" class="topbar-btn" title="Placar">🏆</a>
+        <a href="/player/profile" class="topbar-btn" title="Perfil">📊</a>
+        <form action="/player/logout" method="POST" style="display:inline">
+          <button type="submit" class="topbar-btn" title="Sair">⏻</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main layout -->
+    <div class="desktop-main">
+
+      <!-- Sidebar: missions -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-icon">🎯</span>
+          <span>MISSÕES</span>
+          <span class="missions-count"><%= missoesConcluidas %>/<%= missoes.length %></span>
+        </div>
+
+        <div class="missions-list">
+          <% missoes.forEach(m => {
+            const prog = progressoMap[m.id];
+            const status = prog ? prog.status : 'nao_iniciada';
+            const pts = prog ? prog.pontos_obtidos : 0;
+          %>
+          <a href="/mission/<%= m.id %>" class="mission-item <%= status %>">
+            <div class="mission-item-header">
+              <span class="mission-icon"><%= m.icone %></span>
+              <span class="mission-num">M<%= m.id %></span>
+              <span class="mission-status-icon">
+                <% if (status === 'concluida') { %>✅
+                <% } else if (status === 'em_andamento') { %>⏳
+                <% } else { %>🔒<% } %>
+              </span>
+            </div>
+            <div class="mission-item-body">
+              <span class="mission-name"><%= m.titulo %></span>
+              <div class="mission-meta">
+                <span class="diff-badge diff-<%= m.dificuldade.toLowerCase().replace('é','e').replace('í','i') %>">
+                  <%= m.dificuldade %>
+                </span>
+                <% if (status === 'concluida') { %>
+                  <span class="pts-badge">+<%= pts %> pts</span>
+                <% } else { %>
+                  <span class="pts-max"><%= m.pontos_maximos %> pts</span>
+                <% } %>
+              </div>
+            </div>
+          </a>
+          <% }); %>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="xp-bar-container">
+            <div class="xp-label">
+              <span>EXP</span>
+              <span><%= missoesConcluidas * 125 %> / <%= missoes.length * 125 %></span>
+            </div>
+            <div class="xp-bar">
+              <div class="xp-fill" style="width: <%= Math.round((missoesConcluidas / missoes.length) * 100) %>%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: desktop content -->
+      <div class="desktop-content">
+
+        <!-- Welcome panel -->
+        <div class="welcome-panel">
+          <div class="welcome-header">
+            <div class="terminal-titlebar">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+              <span class="terminal-title">ethical-hacker-os — briefing.sh</span>
+            </div>
+            <div class="welcome-body">
+              <div class="welcome-top">
+                <div class="welcome-avatar">
+                  <div class="avatar-ring">
+                    <span class="avatar-icon">🕵️</span>
+                  </div>
+                  <div class="avatar-info">
+                    <h2>Bem-vindo, <span class="name-highlight"><%= session.nomeCompleto.split(' ')[0] %></span></h2>
+                    <p class="role-text">Ethical Hacker em Treinamento</p>
+                    <div class="badge-row">
+                      <span class="rank-badge">
+                        <% if (missoesConcluidas === 0) { %>
+                          🌱 Novato
+                        <% } else if (missoesConcluidas < 3) { %>
+                          🔍 Analista Jr.
+                        <% } else if (missoesConcluidas < 6) { %>
+                          🛡️ Pentester
+                        <% } else if (missoesConcluidas < 8) { %>
+                          ⚡ Especialista
+                        <% } else { %>
+                          🏆 Hacker Ético Certificado
+                        <% } %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stats-panel">
+                  <div class="stat-card">
+                    <span class="stat-value"><%= pontuacaoTotal %></span>
+                    <span class="stat-label">Pontos</span>
+                  </div>
+                  <div class="stat-card">
+                    <span class="stat-value"><%= missoesConcluidas %></span>
+                    <span class="stat-label">Missões</span>
+                  </div>
+                  <div class="stat-card">
+                    <span class="stat-value"><%= missoes.length - missoesConcluidas %></span>
+                    <span class="stat-label">Restantes</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="terminal-output">
+                <p><span class="prompt">root@ethicalhacker:~#</span> cat /briefing/missao_atual.txt</p>
+                <% const proximaMissao = missoes.find(m => !progressoMap[m.id] || progressoMap[m.id].status !== 'concluida'); %>
+                <% if (proximaMissao) { %>
+                <div class="briefing-box">
+                  <p class="brief-tag">[PRÓXIMA MISSÃO]</p>
+                  <p class="brief-title"><%= proximaMissao.icone %> <%= proximaMissao.titulo %></p>
+                  <p class="brief-diff">Dificuldade: <strong><%= proximaMissao.dificuldade %></strong> | Pontos: <strong><%= proximaMissao.pontos_maximos %></strong></p>
+                  <a href="/mission/<%= proximaMissao.id %>" class="btn-mission-start">
+                    <span>▶</span> INICIAR MISSÃO
+                  </a>
+                </div>
+                <% } else { %>
+                <div class="briefing-box briefing-complete">
+                  <p class="brief-tag">[STATUS: CONCLUÍDO]</p>
+                  <p class="brief-title">🏆 Parabéns! Todas as missões foram concluídas!</p>
+                  <p>Pontuação final: <strong><%= pontuacaoTotal %> pontos</strong></p>
+                  <a href="/leaderboard" class="btn-mission-start">🏆 VER PLACAR</a>
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Missions grid overview -->
+        <div class="missions-overview">
+          <h3 class="section-title">
+            <span class="prompt">$</span> ls -la /missoes/
+          </h3>
+          <div class="missions-grid">
+            <% missoes.forEach(m => {
+              const prog = progressoMap[m.id];
+              const status = prog ? prog.status : 'nao_iniciada';
+              const pts = prog ? prog.pontos_obtidos : 0;
+              const pct = Math.round((pts / m.pontos_maximos) * 100);
+            %>
+            <a href="/mission/<%= m.id %>" class="mission-card status-<%= status %>">
+              <div class="card-top">
+                <span class="card-icon"><%= m.icone %></span>
+                <span class="card-num">M<%= m.id %></span>
+                <span class="card-status">
+                  <% if (status === 'concluida') { %>✅
+                  <% } else if (status === 'em_andamento') { %>⏳
+                  <% } else { %>🔒<% } %>
+                </span>
+              </div>
+              <div class="card-title"><%= m.titulo %></div>
+              <div class="card-meta">
+                <span class="diff-badge diff-<%= m.dificuldade.toLowerCase().replace('é','e').replace('í','i') %>">
+                  <%= m.dificuldade %>
+                </span>
+                <span class="card-pts">
+                  <% if (status === 'concluida') { %>
+                    <span class="pts-ok"><%= pts %>/<%= m.pontos_maximos %> pts</span>
+                  <% } else { %>
+                    <%= m.pontos_maximos %> pts
+                  <% } %>
+                </span>
+              </div>
+              <% if (status === 'concluida') { %>
+              <div class="card-progress">
+                <div class="card-progress-fill" style="width:<%= pct %>%"></div>
+              </div>
+              <% } %>
+            </a>
+            <% }); %>
+          </div>
+        </div>
+
+        <!-- Knowledge panel -->
+        <div class="knowledge-panel">
+          <h3 class="section-title"><span class="prompt">$</span> cat /ref/conceitos.md</h3>
+          <div class="concepts-grid">
+            <div class="concept-card">
+              <span class="concept-icon">🔑</span>
+              <h4>Senhas Seguras</h4>
+              <p>Mínimo 12 caracteres, maiúsculas, números e símbolos. Nunca reutilize senhas.</p>
+            </div>
+            <div class="concept-card">
+              <span class="concept-icon">🎣</span>
+              <h4>Phishing</h4>
+              <p>Verifique sempre o domínio do remetente. Bancos nunca pedem senha por e-mail.</p>
+            </div>
+            <div class="concept-card">
+              <span class="concept-icon">📋</span>
+              <h4>Logs de Segurança</h4>
+              <p>Monitorar logs é essencial para detectar ataques em andamento.</p>
+            </div>
+            <div class="concept-card">
+              <span class="concept-icon">🔒</span>
+              <h4>Permissões</h4>
+              <p>Princípio do mínimo privilégio: cada usuário acessa apenas o necessário.</p>
+            </div>
+            <div class="concept-card">
+              <span class="concept-icon">🛡️</span>
+              <h4>MFA</h4>
+              <p>Autenticação multifator torna ataques de força bruta ineficazes.</p>
+            </div>
+            <div class="concept-card">
+              <span class="concept-icon">🌊</span>
+              <h4>DDoS</h4>
+              <p>Defesa em profundidade: anti-DDoS na borda + WAF + monitoramento.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div class="taskbar">
+      <div class="taskbar-left">
+        <button class="taskbar-btn active" onclick="window.location='/game'">
+          <span>🏠</span> Desktop
+        </button>
+        <% const emAndamento = Object.values(progressoMap).find(p => p.status === 'em_andamento'); %>
+        <% if (emAndamento) { %>
+        <button class="taskbar-btn" onclick="window.location='/mission/<%= emAndamento.missao_id %>'">
+          <span>⏳</span> Missão Ativa
+        </button>
+        <% } %>
+      </div>
+      <div class="taskbar-center">
+        <span class="taskbar-status">🔒 Modo Sandbox Ativo — Nenhuma ação afeta sistemas reais</span>
+      </div>
+      <div class="taskbar-right">
+        <span class="taskbar-clock-small" id="taskClock"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const t = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const d = now.toLocaleDateString('pt-BR');
+      const el1 = document.getElementById('clock');
+      const el2 = document.getElementById('taskClock');
+      if (el1) el1.textContent = `${d} ${t}`;
+      if (el2) el2.textContent = t;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>

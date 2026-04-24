@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethical Hacker Game — Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="login-page">
+
+  <div class="boot-screen" id="bootScreen">
+    <div class="boot-content">
+      <pre class="boot-ascii">
+  ███████╗████████╗██╗  ██╗██╗ ██████╗ █████╗ ██╗
+  ██╔════╝╚══██╔══╝██║  ██║██║██╔════╝██╔══██╗██║
+  █████╗     ██║   ███████║██║██║     ███████║██║
+  ██╔══╝     ██║   ██╔══██║██║██║     ██╔══██║██║
+  ███████╗   ██║   ██║  ██║██║╚██████╗██║  ██║███████╗
+  ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝
+  ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗██████╗
+  ██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
+  ███████║███████║██║     █████╔╝ █████╗  ██████╔╝
+  ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗
+  ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║
+  ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+      </pre>
+      <div class="boot-log" id="bootLog"></div>
+    </div>
+  </div>
+
+  <div class="login-container" id="loginContainer" style="display:none">
+    <div class="login-terminal">
+      <div class="terminal-titlebar">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+        <span class="terminal-title">ethical-hacker-os — login</span>
+      </div>
+      <div class="terminal-body">
+        <div class="login-logo">
+          <div class="logo-icon">⚡</div>
+          <h1>ETHICAL HACKER<br><span>TRAINING SYSTEM</span></h1>
+          <p class="logo-sub">v2.4.1 — Ambiente Seguro e Controlado</p>
+        </div>
+
+        <div class="terminal-line">
+          <span class="prompt">root@ehgame:~#</span>
+          <span class="typed-text" id="typedCmd">./iniciar_treinamento.sh</span>
+        </div>
+
+        <div class="login-box" id="loginBox" style="display:none">
+          <p class="login-msg">
+            <span class="info-icon">ℹ</span>
+            Para registrar seu progresso, informe seu nome completo.
+          </p>
+
+          <% if (error === 'nome_invalido') { %>
+          <div class="alert-error">
+            <span>⚠</span> Nome inválido. Mínimo 3 caracteres.
+          </div>
+          <% } else if (error === 'erro_servidor') { %>
+          <div class="alert-error">
+            <span>⚠</span> Erro no servidor. Verifique se o MySQL está ativo.
+          </div>
+          <% } %>
+
+          <form action="/player/register" method="POST" class="login-form">
+            <div class="input-group">
+              <label for="nome">
+                <span class="prompt-mini">aluno@ehgame:~$</span> identificar_aluno --nome
+              </label>
+              <input
+                type="text"
+                id="nome"
+                name="nome_completo"
+                placeholder="Digite seu nome completo..."
+                autocomplete="off"
+                autofocus
+                required
+                minlength="3"
+              >
+            </div>
+            <button type="submit" class="btn-start">
+              <span>▶</span> INICIAR TREINAMENTO
+            </button>
+          </form>
+
+          <div class="login-footer">
+            <p>🛡 Ambiente 100% simulado — nenhum comando afeta sistemas reais</p>
+            <p>📚 Missões baseadas em cenários reais de cibersegurança</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const bootMessages = [
+      'BIOS v2.4.1 — Inicializando hardware...',
+      'Verificando integridade do kernel... OK',
+      'Carregando módulos de segurança... OK',
+      'Iniciando firewall... ATIVO',
+      'Conectando ao servidor de missões... OK',
+      'Verificando certificados TLS... VÁLIDO',
+      'Carregando ambiente de simulação... OK',
+      'Sistema pronto. Aguardando identificação do operador.',
+    ];
+
+    const bootLog = document.getElementById('bootLog');
+    let i = 0;
+
+    function addBootLine() {
+      if (i < bootMessages.length) {
+        const line = document.createElement('p');
+        line.className = 'boot-line';
+        line.innerHTML = `<span class="boot-time">[  ${(i * 0.3).toFixed(1)}s]</span> ${bootMessages[i]}`;
+        bootLog.appendChild(line);
+        i++;
+        setTimeout(addBootLine, 280);
+      } else {
+        setTimeout(() => {
+          document.getElementById('bootScreen').style.opacity = '0';
+          document.getElementById('bootScreen').style.transition = 'opacity 0.5s';
+          setTimeout(() => {
+            document.getElementById('bootScreen').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'flex';
+            typeCommand();
+          }, 500);
+        }, 600);
+      }
+    }
+
+    function typeCommand() {
+      const cmd = document.getElementById('typedCmd');
+      const text = cmd.textContent;
+      cmd.textContent = '';
+      cmd.style.borderRight = '2px solid #00ff41';
+      let j = 0;
+      const interval = setInterval(() => {
+        cmd.textContent += text[j];
+        j++;
+        if (j >= text.length) {
+          clearInterval(interval);
+          setTimeout(() => {
+            document.getElementById('loginBox').style.display = 'block';
+            document.getElementById('loginBox').style.animation = 'fadeIn 0.5s ease';
+          }, 400);
+        }
+      }, 60);
+    }
+
+    setTimeout(addBootLine, 300);
+  </script>
+</body>
+</html>

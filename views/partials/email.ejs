@@ -1,0 +1,85 @@
+<div class="email-client" id="emailClient">
+  <div class="terminal-titlebar">
+    <span class="dot red"></span>
+    <span class="dot yellow"></span>
+    <span class="dot green"></span>
+    <span class="terminal-title">📧 EthicalMail — Cliente de E-mail</span>
+  </div>
+  <div class="email-layout">
+    <!-- Sidebar -->
+    <div class="email-sidebar">
+      <div class="email-folder active">📥 Caixa de Entrada <span class="badge"><%= missao.emails.length %></span></div>
+      <div class="email-folder">📤 Enviados</div>
+      <div class="email-folder">🗑️ Lixeira</div>
+      <div class="email-folder">⚠️ Spam</div>
+    </div>
+    <!-- Email list + viewer -->
+    <div class="email-main">
+      <div class="email-list">
+        <% missao.emails.forEach((email, idx) => { %>
+        <div class="email-list-item unread" onclick="showEmail(<%= idx %>)" id="emailItem<%= idx %>">
+          <div class="email-sender"><%= email.de %></div>
+          <div class="email-subject"><%= email.assunto %></div>
+          <div class="email-date"><%= email.data %></div>
+        </div>
+        <% }); %>
+      </div>
+      <div class="email-viewer" id="emailViewer">
+        <div class="email-placeholder">
+          <span>📧</span>
+          <p>Selecione um e-mail para ler</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const emails = <%- JSON.stringify(missao.emails) %>;
+
+function showEmail(idx) {
+  const e = emails[idx];
+  document.querySelectorAll('.email-list-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('emailItem' + idx).classList.add('active');
+  document.getElementById('emailItem' + idx).classList.remove('unread');
+
+  document.getElementById('emailViewer').innerHTML = `
+    <div class="email-full">
+      <div class="ef-header">
+        <h3 class="ef-subject">${escHtml(e.assunto)}</h3>
+        <div class="ef-meta">
+          <div class="ef-row"><span class="ef-label">De:</span>
+            <span class="ef-value suspicious">${escHtml(e.de)}
+              <span class="suspicious-tag">⚠️ VERIFIQUE O DOMÍNIO</span>
+            </span>
+          </div>
+          <div class="ef-row"><span class="ef-label">Para:</span><span class="ef-value">${escHtml(e.para)}</span></div>
+          <div class="ef-row"><span class="ef-label">Data:</span><span class="ef-value">${escHtml(e.data)}</span></div>
+        </div>
+        <div class="ef-warning">
+          ⚠️ Este e-mail contém indicadores de phishing — <strong>NÃO clique em links reais</strong>
+        </div>
+      </div>
+      <div class="ef-body">
+        <pre class="email-body-text">${escHtml(e.corpo)}</pre>
+      </div>
+      <div class="ef-analysis">
+        <h4>🔍 Indicadores para análise:</h4>
+        <ul>
+          <li>Domínio do remetente: <code>${escHtml(e.de.split('@')[1] || '')}</code></li>
+          <li>Tipo de solicitação: verifique se é legítima</li>
+          <li>Urgência e ameaças: identifique técnicas de pressão</li>
+          <li>Links: nunca clique — analise o domínio visualmente</li>
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Auto-open first email
+if (emails.length) showEmail(0);
+</script>

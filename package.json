@@ -1,0 +1,21 @@
+{
+  "name": "ethical-hacker-game",
+  "version": "1.0.0",
+  "description": "Jogo educacional de Cibersegurança e Ethical Hacking",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "mysql2": "^3.6.5",
+    "ejs": "^3.1.9",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

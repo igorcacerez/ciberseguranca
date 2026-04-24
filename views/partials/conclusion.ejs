@@ -1,0 +1,28 @@
+<div class="conclusion-card">
+  <div class="conclusion-header">
+    <span class="conclusion-icon">🎓</span>
+    <h3>ANÁLISE FINAL — O QUE APRENDEMOS</h3>
+  </div>
+  <div class="conclusion-sections">
+    <div class="cs-item cs-what">
+      <h4>📖 O que aconteceu</h4>
+      <p><%= missao.conclusao.o_que_aconteceu %></p>
+    </div>
+    <div class="cs-item cs-vuln">
+      <h4>⚠️ A Vulnerabilidade</h4>
+      <p><%= missao.conclusao.vulnerabilidade %></p>
+    </div>
+    <div class="cs-item cs-risk">
+      <h4>🚨 Por que é um risco</h4>
+      <p><%= missao.conclusao.risco %></p>
+    </div>
+    <div class="cs-item cs-fix">
+      <h4>🔧 Como corrigir</h4>
+      <p style="white-space:pre-line"><%= missao.conclusao.como_corrigir %></p>
+    </div>
+    <div class="cs-item cs-best">
+      <h4>✅ Boa prática de segurança</h4>
+      <p><%= missao.conclusao.boa_pratica %></p>
+    </div>
+  </div>
+</div>

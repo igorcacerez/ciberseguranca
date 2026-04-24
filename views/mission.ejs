@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M<%= missao.id %>: <%= missao.titulo %> — EHGame</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="mission-page">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="/game" class="topbar-btn back-btn">← Desktop</a>
+      <span class="topbar-sep">|</span>
+      <span class="mission-breadcrumb">
+        <%= missao.icone %> Missão <%= missao.id %>: <%= missao.titulo %>
+      </span>
+    </div>
+    <div class="topbar-center">
+      <span class="topbar-clock" id="clock"></span>
+    </div>
+    <div class="topbar-right">
+      <span class="player-badge">
+        <span>👤</span> <%= session.nomeCompleto.split(' ')[0] %>
+      </span>
+      <a href="/leaderboard" class="topbar-btn">🏆</a>
+    </div>
+  </div>
+
+  <div class="mission-layout">
+
+    <!-- Left panel: context + tools -->
+    <div class="mission-left">
+
+      <!-- Mission header -->
+      <div class="mission-header-card">
+        <div class="mh-top">
+          <span class="mh-icon"><%= missao.icone %></span>
+          <div class="mh-info">
+            <h1>Missão <%= missao.id %>: <%= missao.titulo %></h1>
+            <p class="mh-sub"><%= missao.subtitulo %></p>
+          </div>
+          <div class="mh-badges">
+            <span class="diff-badge diff-<%= missao.dificuldade.toLowerCase().replace('é','e').replace('í','i') %>">
+              <%= missao.dificuldade %>
+            </span>
+            <span class="pts-badge-lg"><%= missao.pontos_maximos %> pts</span>
+          </div>
+        </div>
+        <div class="mh-context">
+          <p class="context-label">📋 BRIEFING:</p>
+          <p><%- missao.contexto %></p>
+        </div>
+        <div class="mh-tip">
+          <span class="tip-icon">💡</span>
+          <span><%- missao.dica %></span>
+        </div>
+      </div>
+
+      <!-- Tool window based on mission type -->
+      <% if (missao.tipo === 'terminal') { %>
+        <%- include('partials/terminal', { missao }) %>
+      <% } else if (missao.tipo === 'email') { %>
+        <%- include('partials/email', { missao }) %>
+      <% } else if (missao.tipo === 'browser') { %>
+        <%- include('partials/browser', { missao }) %>
+      <% } else { %>
+        <!-- multipla_escolha: apenas o painel de perguntas -->
+        <div class="mc-context-card">
+          <div class="terminal-titlebar">
+            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+            <span class="terminal-title">cenario.txt — leitura</span>
+          </div>
+          <div class="mc-body">
+            <p class="mc-intro">📖 Leia o cenário com atenção antes de responder:</p>
+            <div class="mc-scenario"><%- missao.contexto %></div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Right panel: questions -->
+    <div class="mission-right">
+
+      <div class="questions-panel">
+        <div class="qp-header">
+          <span class="qp-icon">❓</span>
+          <span class="qp-title">ANÁLISE DE SEGURANÇA</span>
+          <span class="qp-progress">
+            <span id="answeredCount">
+              <%= Object.keys(respondidas).length %>
+            </span>/<%= missao.perguntas.length %>
+          </span>
+        </div>
+
+        <div class="score-tracker">
+          <div class="score-track-inner">
+            <span>Pontos desta missão:</span>
+            <span class="live-score" id="liveScore">
+              <%
+                let totalPts = 0;
+                Object.values(respondidas).forEach(r => totalPts += (r.pontos || 0));
+              %>
+              <%= totalPts %>
+            </span>
+          </div>
+          <div class="score-bar">
+            <div class="score-fill" id="scoreFill"
+              style="width:<%= Math.round((totalPts / missao.pontos_maximos) * 100) %>%">
+            </div>
+          </div>
+        </div>
+
+        <div class="questions-list">
+          <% missao.perguntas.forEach((p, idx) => {
+            const answered = respondidas[p.id];
+          %>
+          <div class="question-card <%= answered ? (answered.correta ? 'answered-correct' : 'answered-wrong') : '' %>"
+               id="q<%= p.id %>">
+
+            <div class="q-header">
+              <span class="q-num">Q<%= idx + 1 %></span>
+              <span class="q-pts-badge"><%= p.pontos %> pts</span>
+              <% if (answered) { %>
+                <span class="q-result-icon"><%= answered.correta ? '✅' : '❌' %></span>
+              <% } %>
+            </div>
+
+            <p class="q-text"><%- p.texto %></p>
+
+            <div class="q-options">
+              <% p.opcoes.forEach(opt => {
+                let optClass = 'option-btn';
+                if (answered) {
+                  if (opt.id === p.correta) optClass += ' correct';
+                  else if (opt.id === answered.resposta) optClass += ' wrong';
+                  else optClass += ' disabled';
+                }
+              %>
+              <button
+                class="<%= optClass %>"
+                data-missao="<%= missao.id %>"
+                data-pergunta="<%= p.id %>"
+                data-resposta="<%= opt.id %>"
+                <%= answered ? 'disabled' : '' %>
+                onclick="submitAnswer(this)"
+              >
+                <span class="opt-id"><%= opt.id.toUpperCase() %></span>
+                <span class="opt-text"><%- opt.texto %></span>
+              </button>
+              <% }); %>
+            </div>
+
+            <% if (answered) { %>
+            <div class="feedback-box <%= answered.correta ? 'feedback-correct' : 'feedback-wrong' %>">
+              <p class="feedback-icon"><%= answered.correta ? '✅ Correto!' : '❌ Incorreto' %></p>
+              <p class="feedback-text">
+                <%= answered.correta ? p.feedback_correto : p.feedback_errado %>
+              </p>
+            </div>
+            <% } else { %>
+            <div class="feedback-box feedback-pending" id="fb<%= p.id %>" style="display:none"></div>
+            <% } %>
+          </div>
+          <% }); %>
+        </div>
+
+        <!-- Conclusion (shown when all answered) -->
+        <div class="conclusion-panel" id="conclusionPanel"
+             style="display: <%= allAnswered ? 'block' : 'none' %>">
+          <% if (allAnswered) { %>
+            <%- include('partials/conclusion', { missao }) %>
+          <% } %>
+        </div>
+
+        <!-- Navigation -->
+        <div class="mission-nav">
+          <% if (missao.id > 1) { %>
+          <a href="/mission/<%= missao.id - 1 %>" class="btn-nav prev">← Missão <%= missao.id - 1 %></a>
+          <% } else { %>
+          <a href="/game" class="btn-nav prev">← Desktop</a>
+          <% } %>
+
+          <a href="/game" class="btn-nav home">🏠 Menu</a>
+
+          <% if (missao.id < totalMissoes) { %>
+          <a href="/mission/<%= missao.id + 1 %>" class="btn-nav next">Missão <%= missao.id + 1 %> →</a>
+          <% } else { %>
+          <a href="/leaderboard" class="btn-nav next">🏆 Placar →</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const missaoId = <%= missao.id %>;
+    let currentScore = <%= totalPts %>;
+    let answeredCount = <%= Object.keys(respondidas).length %>;
+    const totalPerguntas = <%= missao.perguntas.length %>;
+
+    async function submitAnswer(btn) {
+      if (btn.disabled) return;
+
+      const missao = btn.dataset.missao;
+      const perguntaId = btn.dataset.pergunta;
+      const resposta = btn.dataset.resposta;
+
+      // Disable all buttons for this question
+      const card = document.getElementById('q' + perguntaId);
+      card.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+      try {
+        const res = await fetch(`/mission/${missao}/answer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pergunta_id: perguntaId, resposta })
+        });
+
+        const data = await res.json();
+        if (data.error) { console.error(data.error); return; }
+
+        // Update button styles
+        card.querySelectorAll('.option-btn').forEach(b => {
+          const correctAnswer = '<%= missao.perguntas.find ? "" : "" %>';
+          if (b.dataset.resposta === resposta && data.correta) {
+            b.classList.add('correct');
+          } else if (b.dataset.resposta === resposta && !data.correta) {
+            b.classList.add('wrong');
+          }
+        });
+
+        // Find correct option and highlight it if wrong
+        if (!data.correta) {
+          // We need to find the correct answer from server feedback
+          // Mark the chosen one as wrong
+          btn.classList.add('wrong');
+        } else {
+          btn.classList.add('correct');
+        }
+
+        // Show feedback
+        const fb = document.getElementById('fb' + perguntaId);
+        if (fb) {
+          fb.style.display = 'block';
+          fb.className = `feedback-box ${data.correta ? 'feedback-correct' : 'feedback-wrong'}`;
+          fb.innerHTML = `
+            <p class="feedback-icon">${data.correta ? '✅ Correto!' : '❌ Incorreto'}</p>
+            <p class="feedback-text">${data.feedback}</p>
+            ${data.correta ? `<p class="pts-gained">+${data.pontosGanhos} pts</p>` : '<p class="pts-lost">-0 pts (nenhum ponto ganho)</p>'}
+          `;
+          card.classList.add(data.correta ? 'answered-correct' : 'answered-wrong');
+        }
+
+        // Update score
+        currentScore += data.pontosGanhos;
+        document.getElementById('liveScore').textContent = currentScore;
+        const pct = Math.round((currentScore / <%= missao.pontos_maximos %>) * 100);
+        document.getElementById('scoreFill').style.width = Math.min(100, pct) + '%';
+
+        // Update counter
+        answeredCount++;
+        document.getElementById('answeredCount').textContent = answeredCount;
+
+        // Show conclusion if all answered
+        if (data.missaoConcluida) {
+          setTimeout(() => loadConclusion(), 800);
+        }
+
+      } catch (err) {
+        console.error('Erro ao enviar resposta:', err);
+      }
+    }
+
+    async function loadConclusion() {
+      try {
+        const res = await fetch(`/mission/${missaoId}/conclusion`);
+        const data = await res.json();
+        if (!data.conclusao) return;
+
+        const c = data.conclusao;
+        const panel = document.getElementById('conclusionPanel');
+        panel.innerHTML = `
+          <div class="conclusion-card">
+            <div class="conclusion-header">
+              <span class="conclusion-icon">🎓</span>
+              <h3>ANÁLISE FINAL — O QUE APRENDEMOS</h3>
+            </div>
+            <div class="conclusion-sections">
+              <div class="cs-item cs-what">
+                <h4>📖 O que aconteceu</h4>
+                <p>${c.o_que_aconteceu}</p>
+              </div>
+              <div class="cs-item cs-vuln">
+                <h4>⚠️ A Vulnerabilidade</h4>
+                <p>${c.vulnerabilidade}</p>
+              </div>
+              <div class="cs-item cs-risk">
+                <h4>🚨 Por que é um risco</h4>
+                <p>${c.risco}</p>
+              </div>
+              <div class="cs-item cs-fix">
+                <h4>🔧 Como corrigir</h4>
+                <p style="white-space:pre-line">${c.como_corrigir}</p>
+              </div>
+              <div class="cs-item cs-best">
+                <h4>✅ Boa prática de segurança</h4>
+                <p>${c.boa_pratica}</p>
+              </div>
+            </div>
+            <div class="conclusion-score">
+              <span class="cs-label">Pontuação obtida nesta missão:</span>
+              <span class="cs-pts">${currentScore} pts</span>
+            </div>
+          </div>
+        `;
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        console.error('Erro ao carregar conclusão:', err);
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const t = now.toLocaleTimeString('pt-BR');
+      const d = now.toLocaleDateString('pt-BR');
+      const el = document.getElementById('clock');
+      if (el) el.textContent = `${d} ${t}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>

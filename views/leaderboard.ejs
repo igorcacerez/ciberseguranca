@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Placar — Ethical Hacker Game</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="game-page">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="/game" class="topbar-btn back-btn">← Desktop</a>
+      <span class="topbar-sep">|</span>
+      <span>🏆 Placar Global</span>
+    </div>
+    <div class="topbar-center">
+      <span class="topbar-clock" id="clock"></span>
+    </div>
+    <div class="topbar-right">
+      <span class="player-badge">👤 <%= session.nomeCompleto.split(' ')[0] %></span>
+    </div>
+  </div>
+
+  <div class="leaderboard-page">
+    <div class="lb-header">
+      <div class="terminal-titlebar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="terminal-title">placar.sh — Top Ethical Hackers</span>
+      </div>
+      <div class="lb-title-area">
+        <span class="lb-icon">🏆</span>
+        <div>
+          <h1>Hall of Fame</h1>
+          <p>Os melhores Ethical Hackers em Treinamento</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="lb-table-wrap">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Hacker</th>
+            <th>Missões</th>
+            <th>Pontuação</th>
+            <th>Nível</th>
+            <th>Última Sessão</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (ranking.length === 0) { %>
+          <tr>
+            <td colspan="6" class="lb-empty">
+              Nenhum jogador registrado ainda. Seja o primeiro!
+            </td>
+          </tr>
+          <% } %>
+          <% ranking.forEach((p, i) => {
+            let medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+            let level = '';
+            if (p.missoes_concluidas === 0) level = '🌱 Novato';
+            else if (p.missoes_concluidas < 3) level = '🔍 Analista Jr.';
+            else if (p.missoes_concluidas < 6) level = '🛡️ Pentester';
+            else if (p.missoes_concluidas < 8) level = '⚡ Especialista';
+            else level = '🏆 Certificado';
+            const isMe = p.nome_completo.toLowerCase() === session.nomeCompleto.toLowerCase();
+          %>
+          <tr class="<%= isMe ? 'lb-me' : '' %> <%= i < 3 ? 'lb-top' : '' %>">
+            <td class="lb-rank"><%= medal %></td>
+            <td class="lb-name">
+              <%= p.nome_completo %>
+              <% if (isMe) { %><span class="lb-you-badge">Você</span><% } %>
+            </td>
+            <td class="lb-missions"><%= p.missoes_concluidas %>/8</td>
+            <td class="lb-score">
+              <span class="lb-pts"><%= p.pontuacao_total %></span>
+              <span class="lb-pts-label">pts</span>
+            </td>
+            <td class="lb-level"><%= level %></td>
+            <td class="lb-date">
+              <%= p.ultima_sessao ? new Date(p.ultima_sessao).toLocaleDateString('pt-BR') : '-' %>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="lb-footer">
+      <a href="/game" class="btn-start">← Voltar ao Jogo</a>
+    </div>
+  </div>
+
+  <script>
+    function updateClock() {
+      const el = document.getElementById('clock');
+      if (el) el.textContent = new Date().toLocaleString('pt-BR');
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>

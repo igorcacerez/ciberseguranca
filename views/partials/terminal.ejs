@@ -1,0 +1,190 @@
+<div class="terminal-window" id="terminalWindow">
+  <div class="terminal-titlebar">
+    <span class="dot red"></span>
+    <span class="dot yellow"></span>
+    <span class="dot green"></span>
+    <span class="terminal-title">terminal — bash — 80×24</span>
+    <span class="terminal-info">🔒 Sandbox Mode</span>
+  </div>
+  <div class="terminal-body" id="terminalBody">
+    <div class="term-output" id="termOutput">
+      <p class="term-line">
+        <span class="term-green">EthicalOS</span> <span class="term-cyan">2.4.1</span>
+        Ambiente simulado — Nenhum comando afeta sistemas reais.
+      </p>
+      <p class="term-line">
+        <span class="term-yellow">MISSÃO <%= missao.id %>:</span> <%= missao.titulo %>
+      </p>
+      <p class="term-line term-dim">Digite <span class="term-green">help</span> para ver os comandos disponíveis.</p>
+      <p class="term-line">────────────────────────────────────────────</p>
+    </div>
+    <div class="term-input-row">
+      <span class="prompt-term">analyst@ehgame:~$</span>
+      <input type="text" id="termInput" class="term-input" autocomplete="off"
+             placeholder="Digite um comando..." autofocus>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const missaoId = <%= missao.id %>;
+  const fs = <%- JSON.stringify(missao.files || {}) %>;
+  const fsTree = <%- JSON.stringify(missao.filesystem || {}) %>;
+  let cwd = '/';
+  const history = [];
+  let histIdx = -1;
+
+  const output = document.getElementById('termOutput');
+  const input = document.getElementById('termInput');
+
+  const helpText = `
+Comandos disponíveis:
+  ls [dir]     — listar arquivos e diretórios
+  cd [dir]     — mudar de diretório
+  cat [file]   — exibir conteúdo de arquivo
+  pwd          — mostrar diretório atual
+  whoami       — mostrar usuário atual
+  clear        — limpar terminal
+  help         — mostrar esta ajuda
+  ls -la [dir] — listagem detalhada com permissões`;
+
+  function print(text, cls = '') {
+    const el = document.createElement('p');
+    el.className = 'term-line ' + cls;
+    el.innerHTML = text;
+    output.appendChild(el);
+    document.getElementById('terminalBody').scrollTop = 99999;
+  }
+
+  function normPath(p) {
+    if (!p.startsWith('/')) p = cwd.replace(/\/$/, '') + '/' + p;
+    const parts = p.split('/').filter(Boolean);
+    const stack = [];
+    for (const part of parts) {
+      if (part === '..') stack.pop();
+      else if (part !== '.') stack.push(part);
+    }
+    return '/' + stack.join('/');
+  }
+
+  function execCmd(raw) {
+    const cmd = raw.trim();
+    if (!cmd) return;
+    history.unshift(cmd);
+    histIdx = -1;
+
+    print(`<span class="term-prompt-echo">analyst@ehgame:${cwd}$</span> ${escHtml(cmd)}`);
+
+    const parts = cmd.split(/\s+/);
+    const base = parts[0];
+    const args = parts.slice(1);
+
+    switch (base) {
+      case 'help': print(helpText.replace(/\n/g, '<br>'), 'term-info'); break;
+      case 'clear': output.innerHTML = ''; break;
+      case 'pwd': print(cwd); break;
+      case 'whoami': print('analyst'); break;
+      case 'date': print(new Date().toLocaleString('pt-BR')); break;
+
+      case 'ls': {
+        let flags = '', target = cwd;
+        args.forEach(a => { if (a.startsWith('-')) flags += a; else target = a; });
+        const path = normPath(target);
+        const entries = fsTree[path];
+        if (entries === undefined) { print(`ls: não é possível acessar '${escHtml(path)}': Arquivo ou diretório não encontrado`, 'term-err'); break; }
+        if (!Array.isArray(entries)) { print(`ls: '${escHtml(path)}': Não é um diretório`, 'term-err'); break; }
+        if (flags.includes('l') || flags.includes('a')) {
+          // Check for hardcoded ls -la output
+          const lsKey = `ls -la ${path}/`;
+          if (fs[lsKey]) { print('<pre class="term-pre">' + escHtml(fs[lsKey]) + '</pre>'); break; }
+          const lsKey2 = `ls -la ${path}`;
+          if (fs[lsKey2]) { print('<pre class="term-pre">' + escHtml(fs[lsKey2]) + '</pre>'); break; }
+          entries.forEach(e => {
+            const fullp = (path === '/' ? '' : path) + '/' + e;
+            const isDir = fsTree[fullp] !== undefined;
+            print(`<span class="${isDir ? 'term-cyan' : 'term-white'}">${isDir ? 'drwxr-xr-x' : '-rw-r--r--'} analyst analyst ${e}</span>`);
+          });
+        } else {
+          const row = entries.map(e => {
+            const fullp = (path === '/' ? '' : path) + '/' + e;
+            const isDir = fsTree[fullp] !== undefined;
+            return `<span class="${isDir ? 'term-cyan' : 'term-white'}">${e}</span>`;
+          }).join('  ');
+          print(row || '(vazio)');
+        }
+        break;
+      }
+
+      case 'cd': {
+        if (!args[0] || args[0] === '~') { cwd = '/home/soc-analyst' in fsTree ? '/home/soc-analyst' : '/'; break; }
+        const np = normPath(args[0]);
+        if (fsTree[np] !== undefined && Array.isArray(fsTree[np])) {
+          cwd = np || '/';
+        } else {
+          print(`bash: cd: ${escHtml(args[0])}: Arquivo ou diretório não encontrado`, 'term-err');
+        }
+        break;
+      }
+
+      case 'cat': {
+        if (!args.length) { print('cat: faltando operando', 'term-err'); break; }
+        const filePath = args.filter(a => !a.startsWith('-')).join(' ');
+        const fp = normPath(filePath);
+        if (fs[fp]) {
+          print('<pre class="term-pre term-file">' + escHtml(fs[fp]) + '</pre>');
+        } else if (fsTree[fp] !== undefined) {
+          print(`cat: ${escHtml(fp)}: É um diretório`, 'term-err');
+        } else {
+          print(`cat: ${escHtml(fp)}: Arquivo não encontrado`, 'term-err');
+        }
+        break;
+      }
+
+      case 'grep': {
+        if (args.length < 2) { print('uso: grep [padrão] [arquivo]', 'term-err'); break; }
+        const pattern = args[0];
+        const gFile = normPath(args[args.length - 1]);
+        const content = fs[gFile];
+        if (!content) { print(`grep: ${escHtml(gFile)}: Arquivo não encontrado`, 'term-err'); break; }
+        const regex = new RegExp(pattern, 'gi');
+        const lines = content.split('\n').filter(l => regex.test(l));
+        if (lines.length) lines.forEach(l => print(l.replace(regex, m => `<mark>${escHtml(m)}</mark>`)));
+        else print('(nenhum resultado)');
+        break;
+      }
+
+      case 'chmod': print(`chmod: simulado — permissões atualizadas (ambiente sandbox)`, 'term-green'); break;
+      case 'sudo': print('analyst não está na lista sudoers. Este incidente será reportado.', 'term-err'); break;
+      case 'rm': print('rm: operação bloqueada no modo sandbox', 'term-err'); break;
+      case 'ping': print('ping: operação de rede bloqueada no modo sandbox', 'term-err'); break;
+      case 'ssh': print('ssh: conexões externas bloqueadas no modo sandbox', 'term-err'); break;
+      case 'nmap': print('nmap: varredura de rede bloqueada — ambiente simulado', 'term-err'); break;
+
+      default:
+        print(`bash: ${escHtml(base)}: comando não encontrado. Digite <span class="term-green">help</span> para ajuda.`, 'term-err');
+    }
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      execCmd(input.value);
+      input.value = '';
+    } else if (e.key === 'ArrowUp') {
+      histIdx = Math.min(histIdx + 1, history.length - 1);
+      input.value = history[histIdx] || '';
+    } else if (e.key === 'ArrowDown') {
+      histIdx = Math.max(histIdx - 1, -1);
+      input.value = histIdx >= 0 ? history[histIdx] : '';
+    }
+  });
+
+  document.getElementById('terminalWindow').addEventListener('click', () => input.focus());
+})();
+</script>

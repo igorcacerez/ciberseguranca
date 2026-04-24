@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil — Ethical Hacker Game</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="game-page">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="/game" class="topbar-btn back-btn">← Desktop</a>
+      <span class="topbar-sep">|</span>
+      <span>📊 Perfil do Jogador</span>
+    </div>
+    <div class="topbar-right">
+      <span class="player-badge">👤 <%= session.nomeCompleto.split(' ')[0] %></span>
+    </div>
+  </div>
+
+  <div class="profile-page">
+    <div class="profile-card">
+      <div class="terminal-titlebar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="terminal-title">perfil.sh — <%= aluno ? aluno.nome_completo : '' %></span>
+      </div>
+      <% if (aluno) { %>
+      <div class="profile-header">
+        <div class="profile-avatar">🕵️</div>
+        <div class="profile-info">
+          <h2><%= aluno.nome_completo %></h2>
+          <p class="profile-role">Ethical Hacker em Treinamento</p>
+          <p class="profile-date">
+            Membro desde: <%= new Date(aluno.criado_em).toLocaleDateString('pt-BR') %>
+          </p>
+        </div>
+        <div class="profile-stats">
+          <div class="stat-card">
+            <span class="stat-value"><%= aluno.pontuacao_total %></span>
+            <span class="stat-label">Pontos</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value"><%= aluno.missoes_concluidas %></span>
+            <span class="stat-label">Missões</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h3>📋 Progresso por Missão</h3>
+        <div class="progress-list">
+          <% progresso.forEach(p => { %>
+          <div class="progress-item">
+            <span class="prog-status">
+              <%= p.status === 'concluida' ? '✅' : p.status === 'em_andamento' ? '⏳' : '🔒' %>
+            </span>
+            <div class="prog-info">
+              <span class="prog-title"><%= p.titulo %></span>
+              <span class="diff-badge diff-<%= p.dificuldade.toLowerCase().replace('é','e').replace('í','i') %>">
+                <%= p.dificuldade %>
+              </span>
+            </div>
+            <div class="prog-score">
+              <% if (p.status === 'concluida') { %>
+                <span class="pts-ok"><%= p.pontos_obtidos %>/<%= p.pontos_maximos %> pts</span>
+              <% } else { %>
+                <span class="pts-max"><%= p.pontos_maximos %> pts</span>
+              <% } %>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h3>🕐 Histórico Recente</h3>
+        <div class="history-list">
+          <% if (historico.length === 0) { %>
+            <p class="empty-hist">Nenhuma tentativa registrada ainda.</p>
+          <% } %>
+          <% historico.forEach(h => { %>
+          <div class="hist-item <%= h.correta ? 'hist-correct' : 'hist-wrong' %>">
+            <span class="hist-icon"><%= h.correta ? '✅' : '❌' %></span>
+            <div class="hist-info">
+              <span class="hist-mission"><%= h.titulo %></span>
+              <span class="hist-q">Pergunta <%= h.pergunta_id %></span>
+            </div>
+            <span class="hist-pts"><%= h.correta ? '+' + h.pontos_ganhos : '0' %> pts</span>
+            <span class="hist-date">
+              <%= new Date(h.data_tentativa).toLocaleString('pt-BR') %>
+            </span>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+      <% } else { %>
+        <p>Perfil não encontrado.</p>
+      <% } %>
+
+      <div class="profile-footer">
+        <a href="/game" class="btn-start">← Voltar ao Jogo</a>
+        <form action="/player/logout" method="POST" style="display:inline">
+          <button type="submit" class="btn-danger">Sair</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

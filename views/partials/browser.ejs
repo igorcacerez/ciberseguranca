@@ -1,0 +1,111 @@
+<div class="browser-window" id="browserWindow">
+  <div class="terminal-titlebar">
+    <span class="dot red"></span>
+    <span class="dot yellow"></span>
+    <span class="dot green"></span>
+    <span class="terminal-title">🌐 SecureView Browser — Modo Análise</span>
+  </div>
+  <div class="browser-toolbar">
+    <div class="browser-nav-btns">
+      <button class="browser-btn" onclick="switchTab('login')">🔑 Login</button>
+      <button class="browser-btn" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="browser-btn" onclick="switchTab('source')">📄 Código-Fonte</button>
+    </div>
+    <div class="browser-url-bar">
+      <span class="url-protocol http">⚠️ http://</span>
+      <span class="url-domain" id="urlDomain">medconnect.internal/login.php</span>
+    </div>
+    <div class="browser-security">
+      <span class="sec-badge insecure">🔓 NÃO SEGURO</span>
+    </div>
+  </div>
+
+  <div class="browser-content">
+    <!-- Login page tab -->
+    <div class="browser-tab active" id="tab-login">
+      <div class="simulated-page login-sim">
+        <div class="page-header-sim">
+          <span class="logo-sim">💊 MedConnect</span>
+          <span class="tagline-sim">Plataforma de Saúde Digital</span>
+        </div>
+        <div class="login-form-sim">
+          <h2>Acesso ao Sistema</h2>
+          <div class="form-group-sim">
+            <label>Usuário:</label>
+            <input type="text" class="input-sim" value="admin" readonly>
+          </div>
+          <div class="form-group-sim">
+            <label>Senha: <span class="vuln-note">[⚠️ type="text" — senha visível!]</span></label>
+            <input type="text" class="input-sim" value="admin123" readonly style="color:#ff6b35">
+          </div>
+          <button class="btn-sim">Entrar</button>
+          <div class="html-comment-sim">
+            &lt;!-- TODO: remover antes do deploy<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Conta de teste: admin / admin123<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DB: root / admin123 --&gt;
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard tab -->
+    <div class="browser-tab" id="tab-dashboard" style="display:none">
+      <div class="simulated-page dashboard-sim">
+        <div class="dash-header">
+          <span>📊 Dashboard — Pacientes</span>
+          <span class="vuln-url-note">URL: /dashboard.php?id=1 <span class="vuln-tag">[⚠️ ID exposto na URL!]</span></span>
+        </div>
+        <div class="dash-content">
+          <p class="vuln-highlight">⚠️ Vulnerabilidade: O ID do usuário está na URL sem validação</p>
+          <p>Ao mudar <code>?id=1</code> para <code>?id=2</code>, um médico pode acessar dados de pacientes de outro profissional.</p>
+          <p>Isso é chamado de <strong>IDOR (Insecure Direct Object Reference)</strong> — OWASP A01:2021</p>
+          <div class="patient-sim">
+            <p>👤 Paciente: João Silva | CPF: 123.xxx.789-00</p>
+            <p>🩺 Diagnóstico: [DADOS SENSÍVEIS]</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Source code tab -->
+    <div class="browser-tab" id="tab-source" style="display:none">
+      <div class="simulated-page source-sim">
+        <div class="source-toolbar">
+          <span class="src-label">📄 Código-fonte: login.php</span>
+          <div class="vuln-markers">
+            <span class="vuln-marker sql">SQL Injection</span>
+            <span class="vuln-marker pass">Senha em Log</span>
+            <span class="vuln-marker cred">Credenciais Expostas</span>
+          </div>
+        </div>
+        <% const codigo = missao.codigo_fonte || {}; %>
+        <% const loginCode = codigo['login.php'] || ''; %>
+        <pre class="source-code" id="sourceCode"><%= loginCode.split('\n').map((line, i) => {
+          let cls = '';
+          if (line.includes("SELECT * FROM") && line.includes("$user")) cls = 'vuln-sql';
+          if (line.includes("Pass: $pass") || line.includes("file_put_contents")) cls = 'vuln-pass';
+          if (line.includes("admin123") || line.includes("root") || line.includes("TODO")) cls = 'vuln-cred';
+          return `<span class="src-line ${cls}"><span class="src-lnum">${String(i+1).padStart(3,' ')}</span> ${line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+        }).join('\n') %></pre>
+        <div class="source-legend">
+          <span class="vuln-marker sql">🔴 SQL Injection</span>
+          <span class="vuln-marker pass">🟠 Senha em log</span>
+          <span class="vuln-marker cred">🟡 Credenciais expostas</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.browser-tab').forEach(t => t.style.display = 'none');
+  document.getElementById('tab-' + name).style.display = 'block';
+  const urls = {
+    login: 'medconnect.internal/login.php',
+    dashboard: 'medconnect.internal/dashboard.php?id=1',
+    source: 'view-source:medconnect.internal/login.php'
+  };
+  document.getElementById('urlDomain').textContent = urls[name] || '';
+}
+</script>

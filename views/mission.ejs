@@ -65,8 +65,6 @@
         <%- include('partials/email', { missao }) %>
       <% } else if (missao.tipo === 'browser') { %>
         <%- include('partials/browser', { missao }) %>
-      <% } else if (missao.tipo === 'chat') { %>
-        <%- include('partials/chat', { missao }) %>
       <% } else { %>
         <!-- multipla_escolha: apenas o painel de perguntas -->
         <div class="mc-context-card">

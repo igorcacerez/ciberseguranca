@@ -29,23 +29,8 @@ Nenhuma ação executada no jogo afeta sistemas reais — tudo é simulado.
 | 6 | Força Bruta — Defesa | Difícil | 200 |
 | 7 | DDoS — Mitigação | Difícil | 200 |
 | 8 | Autenticação Insegura | Difícil | 200 |
-| 9 | Firewall com iptables | Médio | 200 |
-| 10 | DNS e Certificado SSL | Médio | 200 |
-| 11 | OSINT — Reconhecimento Passivo | Médio | 150 |
-| 12 | XSS — Cross-Site Scripting | Médio | 150 |
-| 13 | Operação Interpol — Takedown de Pirataria | Difícil | 250 |
-| 14 | Firewall de Rede Corporativa | Médio | 180 |
-| 15 | Publicar Site com DNS e SSL | Médio | 180 |
-| 16 | Interpol: Takedown Legal | Difícil | 220 |
-| 17 | Interpol: Localização com Base Legal | Difícil | 220 |
-| 18 | Teste de Engenharia Social | Difícil | 220 |
-| 19 | Contrato e Escopo de Pentest | Fácil | 150 |
-| 20 | Reconhecimento Ético | Médio | 180 |
-| 21 | Gestão de Vulnerabilidades | Médio | 180 |
-| 22 | Relatório de Pentest | Médio | 180 |
-| 23 | Código de Conduta do Hacker Ético | Fácil | 150 |
 
-**Pontuação máxima total: 4.060 pontos**
+**Pontuação máxima total: 1.250 pontos**
 
 ## Pré-requisitos
 
@@ -85,8 +70,6 @@ DB_NAME=ethical_hacker_game
 DB_PORT=3306
 SESSION_SECRET=uma_chave_aleatoria_longa_aqui
 PORT=3000
-OPENAI_API_KEY=sua_chave_openai_para_chat_ia
-OPENAI_MODEL=gpt-5-mini
 ```
 
 ### 4. Criar o banco de dados e tabelas
@@ -104,7 +87,7 @@ Ou manualmente no MySQL Workbench / DBeaver:
 Isso criará:
 - Banco de dados `ethical_hacker_game`
 - Tabelas: `alunos`, `missoes`, `tentativas`, `pontuacoes`, `progresso`
-- Dados iniciais: 23 missões prontas
+- Dados iniciais: 8 missões prontas
 
 ### 5. Iniciar o servidor
 
@@ -134,7 +117,7 @@ ethical-hacker-game/
 │   ├── player.js           # Registro e perfil do jogador
 │   └── missions.js         # Lógica das missões e respostas
 ├── data/
-│   └── missions-data.js    # Conteúdo completo das 23 missões
+│   └── missions-data.js    # Conteúdo completo das 8 missões
 ├── database/
 │   └── schema.sql          # Script de criação do banco
 ├── views/

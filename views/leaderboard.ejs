@@ -64,7 +64,8 @@
             else if (p.missoes_concluidas < 4) level = '🔍 Analista Jr.';
             else if (p.missoes_concluidas < 9) level = '🛡️ Pentester';
             else if (p.missoes_concluidas < 14) level = '⚡ Especialista';
-            else if (p.missoes_concluidas < 18) level = '🔥 Especialista Sênior';
+            else if (p.missoes_concluidas < 19) level = '🔥 Especialista Sênior';
+            else if (p.missoes_concluidas < 23) level = '💀 Red Teamer';
             else level = '🏆 Certificado';
             const isMe = p.nome_completo.toLowerCase() === session.nomeCompleto.toLowerCase();
           %>
@@ -74,7 +75,7 @@
               <%= p.nome_completo %>
               <% if (isMe) { %><span class="lb-you-badge">Você</span><% } %>
             </td>
-            <td class="lb-missions"><%= p.missoes_concluidas %>/8</td>
+            <td class="lb-missions"><%= p.missoes_concluidas %>/23</td>
             <td class="lb-score">
               <span class="lb-pts"><%= p.pontuacao_total %></span>
               <span class="lb-pts-label">pts</span>

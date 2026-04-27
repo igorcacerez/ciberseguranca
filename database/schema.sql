@@ -85,11 +85,21 @@ CREATE TABLE IF NOT EXISTS progresso (
 -- DADOS INICIAIS: missões
 -- ============================================================
 INSERT INTO missoes (titulo, descricao, dificuldade, pontos_maximos, ordem) VALUES
-('Senhas Vulneráveis',    'Identifique senhas fracas em um sistema fictício e analise logs de acesso suspeito.',               'Fácil',  100, 1),
-('Detectando Phishing',   'Analise um e-mail suspeito e identifique todos os indicadores de phishing.',                        'Fácil',  100, 2),
-('Análise de Logs',       'Investigue logs de autenticação para detectar um ataque em andamento.',                             'Médio',  150, 3),
-('Permissões Incorretas', 'Audite e corrija permissões incorretas de arquivos em um servidor web.',                            'Médio',  150, 4),
-('Dados Sensíveis Expostos', 'Encontre credenciais e dados sensíveis expostos indevidamente na aplicação.',                   'Médio',  150, 5),
-('Força Bruta — Defesa',  'Responda a um ataque de credential stuffing em larga escala tomando decisões de defesa.',           'Difícil',200, 6),
-('DDoS — Mitigação',      'Analise e responda a um ataque DDoS volumétrico de 47 Gbps em tempo real.',                       'Difícil',200, 7),
-('Autenticação Insegura', 'Realize code review de segurança em um sistema de login com múltiplas vulnerabilidades críticas.',  'Difícil',200, 8);
+('Senhas Vulneráveis',             'Identifique senhas fracas e analise logs de acesso suspeito.',                             'Fácil',  100,  1),
+('Detectando Phishing',            'Analise um e-mail suspeito e identifique todos os indicadores de phishing.',               'Fácil',  100,  2),
+('Análise de Logs',                'Investigue logs de autenticação para detectar um ataque em andamento.',                    'Médio',  150,  3),
+('Permissões Incorretas',          'Audite e corrija permissões incorretas de arquivos em um servidor web.',                   'Médio',  150,  4),
+('Dados Sensíveis Expostos',       'Encontre credenciais e dados sensíveis expostos indevidamente na aplicação.',              'Médio',  150,  5),
+('Força Bruta — Defesa',           'Responda a um ataque de credential stuffing em larga escala.',                             'Difícil',200,  6),
+('DDoS — Mitigação',               'Analise e responda a um ataque DDoS volumétrico de 47 Gbps em tempo real.',               'Difícil',200,  7),
+('Autenticação Insegura',          'Code review de segurança em sistema de login com múltiplas vulnerabilidades.',             'Difícil',200,  8),
+('Firewall com iptables',          'Configure regras de firewall para proteger servidor Linux exposto.',                       'Difícil',200,  9),
+('DNS e Certificado SSL',          'Configure DNS e instale SSL para colocar site no ar com HTTPS.',                          'Difícil',200, 10),
+('OSINT — Reconhecimento Passivo', 'Colete inteligência aberta sobre um alvo sem enviar nenhum pacote.',                      'Médio',  150, 11),
+('XSS — Cross-Site Scripting',     'Identifique e corrija injeção de scripts em aplicação web.',                              'Médio',  150, 12),
+('Operação Interpol — Pirataria',  'Evidências e takedown legal de servidor de distribuição ilegal.',                         'Difícil',250, 13),
+('Operação Interpol — Localizar',  'Rastreie cibercriminoso via análise legal de IP, VPN e MLAT.',                            'Difícil',250, 14),
+('Engenharia Social — Red Team',   'Teste a resistência de funcionários via chat simulado com IA.',                           'Difícil',250, 15),
+('Análise de Malware',             'Identifique comportamento malicioso e persistência em código suspeito.',                  'Difícil',200, 16),
+('Resposta a Incidentes',          'Conduza resposta estruturada a comprometimento em servidor de pagamentos.',                'Difícil',200, 17),
+('Metodologia de Pentest',         'Fases, CVSS, responsible disclosure e ética do pentest profissional.',                    'Médio',  150, 18);

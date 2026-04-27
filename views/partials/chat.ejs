@@ -1,0 +1,227 @@
+<div class="chat-window">
+  <div class="terminal-titlebar">
+    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+    <span class="terminal-title">FinanTech Chat — Teste de Engenharia Social (Autorizado)</span>
+  </div>
+
+  <div class="chat-layout">
+    <!-- Sidebar: lista de funcionários -->
+    <div class="chat-sidebar">
+      <div class="chat-sidebar-header">
+        <span class="chat-org">🏢 FinanTech S.A.</span>
+        <span class="chat-you-badge">Você: Rodrigo / TI</span>
+      </div>
+      <div class="chat-employees">
+        <p class="chat-section-label">FUNCIONÁRIOS</p>
+        <% missao.personas.forEach(p => { %>
+        <div class="chat-employee <%= p.online ? 'online' : 'offline' %>"
+             data-id="<%= p.id %>"
+             data-nome="<%= p.nome %>"
+             onclick="selecionarPersona('<%= p.id %>')">
+          <span class="chat-avatar"><%= p.avatar %></span>
+          <div class="chat-emp-info">
+            <span class="chat-emp-nome"><%= p.nome %></span>
+            <span class="chat-emp-cargo"><%= p.cargo %></span>
+          </div>
+          <span class="chat-status-dot <%= p.online ? 'dot-online' : 'dot-offline' %>"></span>
+        </div>
+        <% }); %>
+      </div>
+      <div class="chat-legend">
+        <p class="chat-legend-title">Nível de resistência:</p>
+        <% missao.personas.forEach(p => { %>
+        <div class="chat-legend-item nivel-<%= p.nivel %>">
+          <span><%= p.avatar %> <%= p.nome.split(' ')[0] %></span>
+          <span class="nivel-badge"><%= p.nivel === 'muito_baixo' ? '🔴 Muito Baixo' : p.nivel === 'baixo' ? '🟠 Baixo' : p.nivel === 'medio' ? '🟡 Médio' : '🟢 Alto' %></span>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+
+    <!-- Área de chat -->
+    <div class="chat-main">
+      <div class="chat-topbar" id="chatTopbar">
+        <span class="chat-current-avatar" id="chatAvatar">💬</span>
+        <div class="chat-current-info">
+          <span class="chat-current-nome" id="chatNome">Selecione um funcionário</span>
+          <span class="chat-current-cargo" id="chatCargo">← para iniciar conversa</span>
+        </div>
+        <span class="chat-status-text" id="chatStatus"></span>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg-system">
+          <span>🔐 Conexão segura — Chat Interno FinanTech S.A. — Teste autorizado #RED-2024-003</span>
+        </div>
+        <div class="chat-empty" id="chatEmpty">
+          <p>Selecione um funcionário na lista ao lado para iniciar a conversa.</p>
+          <p class="chat-hint">Dica: tente convencer os funcionários a compartilhar credenciais de acesso usando técnicas de engenharia social.</p>
+        </div>
+      </div>
+
+      <div class="chat-input-area" id="chatInputArea" style="display:none">
+        <input type="text" id="chatInput" class="chat-input"
+               placeholder="Digite sua mensagem..."
+               onkeypress="if(event.key==='Enter') enviarMensagem()">
+        <button class="chat-send-btn" onclick="enviarMensagem()">Enviar ↵</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Badge de sucesso (aparece quando credencial é extraída) -->
+  <div class="chat-success-banner" id="chatSuccessBanner" style="display:none">
+    <span>⚠️ CREDENCIAL OBTIDA!</span>
+    <span id="chatSuccessMsg"></span>
+    <span>Anote a técnica usada para responder as perguntas de análise.</span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const missaoId = <%= missao.id %>;
+  let personaAtual = null;
+  const historicos = {};
+  let credencialObtida = false;
+
+  const personas = <%- JSON.stringify(missao.personas.map(p => ({
+    id: p.id, nome: p.nome, cargo: p.cargo, avatar: p.avatar, online: p.online, nivel: p.nivel
+  }))) %>;
+
+  function selecionarPersona(id) {
+    const persona = personas.find(p => p.id === id);
+    if (!persona) return;
+    personaAtual = id;
+
+    document.querySelectorAll('.chat-employee').forEach(el => el.classList.remove('active'));
+    document.querySelector(`.chat-employee[data-id="${id}"]`).classList.add('active');
+
+    document.getElementById('chatAvatar').textContent = persona.avatar;
+    document.getElementById('chatNome').textContent = persona.nome;
+    document.getElementById('chatCargo').textContent = persona.cargo;
+    document.getElementById('chatStatus').textContent = persona.online ? '🟢 Online' : '🔴 Offline';
+    document.getElementById('chatEmpty').style.display = 'none';
+    document.getElementById('chatInputArea').style.display = 'flex';
+
+    if (!historicos[id]) historicos[id] = [];
+    renderMensagens(id);
+
+    if (!persona.online) {
+      document.getElementById('chatInput').placeholder = `${persona.nome} está offline. Tente outro funcionário.`;
+      document.getElementById('chatInput').disabled = true;
+      document.querySelector('.chat-send-btn').disabled = true;
+    } else {
+      document.getElementById('chatInput').placeholder = 'Digite sua mensagem...';
+      document.getElementById('chatInput').disabled = false;
+      document.querySelector('.chat-send-btn').disabled = false;
+      document.getElementById('chatInput').focus();
+    }
+  }
+
+  function renderMensagens(id) {
+    const msgs = historicos[id] || [];
+    const container = document.getElementById('chatMessages');
+    const systemMsg = container.querySelector('.chat-msg-system');
+    container.innerHTML = '';
+    container.appendChild(systemMsg);
+
+    if (msgs.length === 0) {
+      const hint = document.createElement('div');
+      hint.className = 'chat-msg-intro';
+      hint.innerHTML = '<p>Conversa iniciada. Apresente-se e inicie o teste.</p>';
+      container.appendChild(hint);
+    }
+
+    msgs.forEach(m => {
+      const div = document.createElement('div');
+      div.className = `chat-msg ${m.role === 'user' ? 'msg-user' : 'msg-employee'}`;
+      div.innerHTML = `
+        <span class="msg-sender">${m.role === 'user' ? '👤 Você (Rodrigo/TI)' : m.nomePersona}</span>
+        <div class="msg-bubble">${escapeHtml(m.content)}</div>
+        <span class="msg-time">${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</span>
+      `;
+      container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function enviarMensagem() {
+    if (!personaAtual) return;
+    const input = document.getElementById('chatInput');
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    const persona = personas.find(p => p.id === personaAtual);
+    if (!persona || !persona.online) return;
+
+    if (!historicos[personaAtual]) historicos[personaAtual] = [];
+    historicos[personaAtual].push({ role: 'user', content: texto });
+    input.value = '';
+    renderMensagens(personaAtual);
+
+    // Mostrar indicador de digitação
+    const container = document.getElementById('chatMessages');
+    const typing = document.createElement('div');
+    typing.className = 'chat-typing';
+    typing.id = 'typingIndicator';
+    typing.innerHTML = `<span>${persona.avatar} ${persona.nome.split(' ')[0]} está digitando...</span>`;
+    container.appendChild(typing);
+    container.scrollTop = container.scrollHeight;
+
+    try {
+      const historicoPuro = historicos[personaAtual]
+        .slice(0, -1)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const res = await fetch(`/mission/${missaoId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personagem: personaAtual,
+          mensagem: texto,
+          historico: historicoPuro
+        })
+      });
+
+      const data = await res.json();
+      document.getElementById('typingIndicator')?.remove();
+
+      if (data.error) {
+        const errDiv = document.createElement('div');
+        errDiv.className = 'chat-msg-system';
+        errDiv.innerHTML = `<span>⚠️ ${data.error}</span>`;
+        container.appendChild(errDiv);
+        return;
+      }
+
+      historicos[personaAtual].push({
+        role: 'assistant',
+        content: data.resposta,
+        nomePersona: `${persona.avatar} ${persona.nome}`
+      });
+
+      renderMensagens(personaAtual);
+
+      if (data.credencial_exposta && !credencialObtida) {
+        credencialObtida = true;
+        document.getElementById('chatSuccessBanner').style.display = 'flex';
+        document.getElementById('chatSuccessMsg').textContent =
+          `${persona.nome} (${persona.cargo}) revelou credencial de acesso!`;
+      }
+
+    } catch (err) {
+      document.getElementById('typingIndicator')?.remove();
+      const errDiv = document.createElement('div');
+      errDiv.className = 'chat-msg-system';
+      errDiv.innerHTML = '<span>⚠️ Erro de conexão com o chat. Tente novamente.</span>';
+      container.appendChild(errDiv);
+    }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  window.selecionarPersona = selecionarPersona;
+  window.enviarMensagem = enviarMensagem;
+})();
+</script>

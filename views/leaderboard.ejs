@@ -61,9 +61,10 @@
             let medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
             let level = '';
             if (p.missoes_concluidas === 0) level = '🌱 Novato';
-            else if (p.missoes_concluidas < 3) level = '🔍 Analista Jr.';
-            else if (p.missoes_concluidas < 6) level = '🛡️ Pentester';
-            else if (p.missoes_concluidas < 8) level = '⚡ Especialista';
+            else if (p.missoes_concluidas < 4) level = '🔍 Analista Jr.';
+            else if (p.missoes_concluidas < 9) level = '🛡️ Pentester';
+            else if (p.missoes_concluidas < 14) level = '⚡ Especialista';
+            else if (p.missoes_concluidas < 18) level = '🔥 Especialista Sênior';
             else level = '🏆 Certificado';
             const isMe = p.nome_completo.toLowerCase() === session.nomeCompleto.toLowerCase();
           %>

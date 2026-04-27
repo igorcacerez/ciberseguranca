@@ -192,6 +192,72 @@ router.post('/:id/answer', requireAuth, async (req, res) => {
   }
 });
 
+// POST /mission/:id/chat — chat de engenharia social com IA
+router.post('/:id/chat', requireAuth, async (req, res) => {
+  const missaoId = parseInt(req.params.id);
+  const missao = missionsData.find(m => m.id === missaoId);
+
+  if (!missao || missao.tipo !== 'chat') {
+    return res.json({ error: 'Missão de chat não encontrada' });
+  }
+
+  const { personagem, mensagem, historico } = req.body;
+  if (!personagem || !mensagem) {
+    return res.json({ error: 'Dados incompletos' });
+  }
+
+  const persona = missao.personas.find(p => p.id === personagem);
+  if (!persona) return res.json({ error: 'Personagem não encontrado' });
+
+  if (!persona.online) {
+    return res.json({ resposta: `${persona.nome} está offline no momento.`, credencial_exposta: false });
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    // Fallback sem OpenAI: respostas genéricas baseadas no nível
+    const fallbacks = {
+      muito_baixo: `Olá! Claro, como posso ajudar? Se precisar de acesso, pode me perguntar. 😊`,
+      baixo: `Oi! Pode me falar mais sobre o problema? Quero resolver logo isso aqui.`,
+      medio: `Olá. Preciso confirmar sua identidade antes de qualquer coisa. Pode abrir um ticket no sistema?`,
+      alto: `Identifico que você está tentando obter informações de acesso via chat. Isso é contra nossa política de segurança e vou registrar este incidente. Acesso legítimo só via sistema de ticket.`
+    };
+    const resposta = fallbacks[persona.nivel] || fallbacks.medio;
+    const credencial_exposta = false;
+    return res.json({ resposta, credencial_exposta });
+  }
+
+  try {
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey });
+
+    const messages = [
+      { role: 'system', content: persona.system_prompt },
+      ...(Array.isArray(historico) ? historico.slice(-10) : []),
+      { role: 'user', content: mensagem }
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages,
+      max_tokens: 250,
+      temperature: 0.8
+    });
+
+    const resposta = completion.choices[0].message.content;
+
+    const credencial_exposta = persona.palavras_chave_sucesso.some(kw =>
+      resposta.toLowerCase().includes(kw.toLowerCase())
+    );
+
+    res.json({ resposta, credencial_exposta });
+
+  } catch (err) {
+    console.error('[chat OpenAI]', err.message);
+    res.json({ error: 'Serviço de chat temporariamente indisponível. Verifique OPENAI_API_KEY no .env' });
+  }
+});
+
 // GET /mission/:id/conclusion — retorna conclusão da missão
 router.get('/:id/conclusion', requireAuth, (req, res) => {
   const missaoId = parseInt(req.params.id);
